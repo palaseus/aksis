@@ -45,7 +45,9 @@ class FeedForward(nn.Module):
         # Dropout
         self.dropout = nn.Dropout(dropout)
 
-        logger.info(f"Initialized FeedForward: d_model={d_model}, d_ff={self.d_ff}")
+        logger.info(
+            f"Initialized FeedForward: d_model={d_model}, d_ff={self.d_ff}"
+        )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """

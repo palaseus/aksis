@@ -33,7 +33,9 @@ class TestMultiHeadAttention:
         d_model = 512
         num_heads = 7  # Not divisible by d_model
 
-        with pytest.raises(ValueError, match="d_model must be divisible by num_heads"):
+        with pytest.raises(
+            ValueError, match="d_model must be divisible by num_heads"
+        ):
             MultiHeadAttention(d_model, num_heads)
 
     def test_attention_forward_shape(self) -> None:
@@ -121,7 +123,9 @@ class TestMultiHeadAttention:
 
         # Check that attention scores sum to 1 along the last dimension
         scores_sum = attention_weights.sum(dim=-1)
-        assert torch.allclose(scores_sum, torch.ones_like(scores_sum), atol=1e-6)
+        assert torch.allclose(
+            scores_sum, torch.ones_like(scores_sum), atol=1e-6
+        )
 
     def test_attention_gradient_flow(self) -> None:
         """Test that gradients flow properly through attention."""
@@ -298,11 +302,19 @@ class TestMultiHeadAttention:
 
         # Reshape for multi-head attention
         batch_size, seq_len, d_model = q.size()
-        q = q.view(batch_size, seq_len, num_heads, d_model // num_heads).transpose(1, 2)
-        k = k.view(batch_size, seq_len, num_heads, d_model // num_heads).transpose(1, 2)
-        v = v.view(batch_size, seq_len, num_heads, d_model // num_heads).transpose(1, 2)
+        q = q.view(
+            batch_size, seq_len, num_heads, d_model // num_heads
+        ).transpose(1, 2)
+        k = k.view(
+            batch_size, seq_len, num_heads, d_model // num_heads
+        ).transpose(1, 2)
+        v = v.view(
+            batch_size, seq_len, num_heads, d_model // num_heads
+        ).transpose(1, 2)
 
         # Compute attention scores
-        scores = torch.matmul(q, k.transpose(-2, -1)) / math.sqrt(d_model // num_heads)
+        scores = torch.matmul(q, k.transpose(-2, -1)) / math.sqrt(
+            d_model // num_heads
+        )
 
         assert scores.shape == (batch_size, num_heads, seq_len, seq_len)

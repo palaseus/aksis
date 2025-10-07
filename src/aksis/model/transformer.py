@@ -74,7 +74,9 @@ class TransformerDecoderLayer(nn.Module):
             Output tensor of shape [batch_size, seq_len, d_model].
         """
         # Self-attention with residual connection and layer norm
-        attn_output = self.self_attn(x, x, x, mask=mask, padding_mask=padding_mask)
+        attn_output = self.self_attn(
+            x, x, x, mask=mask, padding_mask=padding_mask
+        )
         x = self.norm1(x + self.dropout(attn_output))
 
         # Feed-forward with residual connection and layer norm
@@ -140,7 +142,9 @@ class TransformerDecoder(nn.Module):
         self.embedding = nn.Embedding(vocab_size, d_model)
 
         # Positional encoding
-        self.pos_encoding = SinusoidalPositionalEncoding(d_model, max_len, dropout)
+        self.pos_encoding = SinusoidalPositionalEncoding(
+            d_model, max_len, dropout
+        )
 
         # Transformer layers
         self.layers = nn.ModuleList(
@@ -276,7 +280,9 @@ class TransformerDecoder(nn.Module):
                     next_token = torch.multinomial(probs, num_samples=1)
                 else:
                     # Greedy decoding
-                    next_token = torch.argmax(next_token_logits, dim=-1, keepdim=True)
+                    next_token = torch.argmax(
+                        next_token_logits, dim=-1, keepdim=True
+                    )
 
                 # Append to generated sequence
                 generated = torch.cat([generated, next_token], dim=1)
@@ -299,6 +305,8 @@ class TransformerDecoder(nn.Module):
         Returns:
             Model size in MB.
         """
-        param_size = sum(p.numel() * p.element_size() for p in self.parameters())
+        param_size = sum(
+            p.numel() * p.element_size() for p in self.parameters()
+        )
         buffer_size = sum(b.numel() * b.element_size() for b in self.buffers())
         return (param_size + buffer_size) / (1024 * 1024)

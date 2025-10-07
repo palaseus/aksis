@@ -106,7 +106,9 @@ def test_dataloader(texts: tuple, batch_size: int) -> None:
     # Process batches
     for i, batch in enumerate(dataloader):
         logger.info(f"Batch {i}: input_ids shape={batch['input_ids'].shape}")
-        logger.info(f"Batch {i}: attention_mask shape={batch['attention_mask'].shape}")
+        logger.info(
+            f"Batch {i}: attention_mask shape={batch['attention_mask'].shape}"
+        )
 
 
 @main.command()
@@ -138,24 +140,24 @@ def info() -> None:
 def test_model(device: Optional[str]) -> None:
     """Test the transformer model with a simple forward pass."""
     import torch
-    
+
     logger.info("Testing transformer model...")
-    
+
     # Get device
     device_obj = get_device(device)
     logger.info(f"Using device: {device_obj}")
-    
+
     # Create sample data
     texts = [
         "Hello world, this is a test sentence.",
         "The quick brown fox jumps over the lazy dog.",
     ]
-    
+
     # Create tokenizer and build vocabulary
     tokenizer = Tokenizer(vocab_size=1000)
     tokenizer.build_vocab(texts)
     logger.info(f"Vocabulary size: {tokenizer.vocab_size_with_special}")
-    
+
     # Create DataLoader
     dataloader = DataLoader(
         texts=texts,
@@ -164,7 +166,7 @@ def test_model(device: Optional[str]) -> None:
         max_length=20,
         device=device_obj,
     )
-    
+
     # Create model
     model = TransformerDecoder(
         vocab_size=tokenizer.vocab_size_with_special,
@@ -175,26 +177,28 @@ def test_model(device: Optional[str]) -> None:
         max_len=1000,
         dropout=0.1,
     ).to(device_obj)
-    
-    logger.info(f"Model created with {sum(p.numel() for p in model.parameters())} parameters")
-    
+
+    logger.info(
+        f"Model created with {sum(p.numel() for p in model.parameters())} parameters"
+    )
+
     # Test forward pass
     model.eval()
     with torch.no_grad():
         for batch in dataloader:
             input_ids = batch["input_ids"]
             attention_mask = batch["attention_mask"]
-            
+
             logger.info(f"Input shape: {input_ids.shape}")
             logger.info(f"Attention mask shape: {attention_mask.shape}")
-            
+
             # Forward pass
             output = model(input_ids, padding_mask=attention_mask)
-            
+
             logger.info(f"Output shape: {output.shape}")
             logger.info(f"Output device: {output.device}")
             logger.info(f"Output dtype: {output.dtype}")
-            
+
             # Check for NaN or Inf
             if torch.isnan(output).any():
                 logger.error("Output contains NaN values!")
@@ -202,9 +206,9 @@ def test_model(device: Optional[str]) -> None:
                 logger.error("Output contains Inf values!")
             else:
                 logger.info("Output is numerically stable")
-            
+
             break  # Only test first batch
-    
+
     logger.info("Model test completed successfully!")
 
 
@@ -276,21 +280,25 @@ def train_model(
     """Train the transformer model."""
     import torch
     import os
-    from aksis.train.dataset import load_wikitext2, load_shakespeare, create_dataloaders
+    from aksis.train.dataset import (
+        load_wikitext2,
+        load_shakespeare,
+        create_dataloaders,
+    )
     from aksis.train.trainer import Trainer
     from aksis.model.transformer import TransformerDecoder
     from aksis.data.tokenizer import Tokenizer
-    
+
     logger.info("Starting model training...")
-    
+
     # Get device
     device_obj = get_device(device)
     logger.info(f"Using device: {device_obj}")
-    
+
     # Create tokenizer
     tokenizer = Tokenizer(vocab_size=10000)
     logger.info("Tokenizer created")
-    
+
     # Load dataset
     if dataset == "wikitext2":
         train_dataset, val_dataset, test_dataset = load_wikitext2(
@@ -302,15 +310,15 @@ def train_model(
         )
     else:
         raise ValueError(f"Unknown dataset: {dataset}")
-    
+
     logger.info(f"Dataset loaded: {dataset}")
-    
+
     # Create DataLoaders
     train_loader, val_loader, test_loader = create_dataloaders(
         train_dataset, val_dataset, test_dataset, batch_size=batch_size
     )
     logger.info("DataLoaders created")
-    
+
     # Create model
     model = TransformerDecoder(
         vocab_size=tokenizer.vocab_size_with_special,
@@ -321,9 +329,11 @@ def train_model(
         max_len=max_length,
         dropout=0.1,
     ).to(device_obj)
-    
-    logger.info(f"Model created with {sum(p.numel() for p in model.parameters())} parameters")
-    
+
+    logger.info(
+        f"Model created with {sum(p.numel() for p in model.parameters())} parameters"
+    )
+
     # Create trainer
     trainer = Trainer(
         model=model,
@@ -336,16 +346,16 @@ def train_model(
         max_grad_norm=max_grad_norm,
         use_mixed_precision=mixed_precision,
     )
-    
+
     logger.info("Trainer created")
-    
+
     # Create checkpoint directory
     os.makedirs(checkpoint_dir, exist_ok=True)
-    
+
     # Train model
     logger.info(f"Starting training for {epochs} epochs...")
     trainer.train()
-    
+
     logger.info("Training completed successfully!")
 
 
@@ -386,21 +396,25 @@ def eval_model(
 ) -> None:
     """Evaluate the trained model."""
     import torch
-    from aksis.train.dataset import load_wikitext2, load_shakespeare, create_dataloaders
+    from aksis.train.dataset import (
+        load_wikitext2,
+        load_shakespeare,
+        create_dataloaders,
+    )
     from aksis.train.trainer import Trainer
     from aksis.model.transformer import TransformerDecoder
     from aksis.data.tokenizer import Tokenizer
-    
+
     logger.info("Starting model evaluation...")
-    
+
     # Get device
     device_obj = get_device(device)
     logger.info(f"Using device: {device_obj}")
-    
+
     # Create tokenizer
     tokenizer = Tokenizer(vocab_size=10000)
     logger.info("Tokenizer created")
-    
+
     # Load dataset
     if dataset == "wikitext2":
         train_dataset, val_dataset, test_dataset = load_wikitext2(
@@ -412,15 +426,15 @@ def eval_model(
         )
     else:
         raise ValueError(f"Unknown dataset: {dataset}")
-    
+
     logger.info(f"Dataset loaded: {dataset}")
-    
+
     # Create DataLoaders
     train_loader, val_loader, test_loader = create_dataloaders(
         train_dataset, val_dataset, test_dataset, batch_size=batch_size
     )
     logger.info("DataLoaders created")
-    
+
     # Create model
     model = TransformerDecoder(
         vocab_size=tokenizer.vocab_size_with_special,
@@ -431,9 +445,11 @@ def eval_model(
         max_len=max_length,
         dropout=0.1,
     ).to(device_obj)
-    
-    logger.info(f"Model created with {sum(p.numel() for p in model.parameters())} parameters")
-    
+
+    logger.info(
+        f"Model created with {sum(p.numel() for p in model.parameters())} parameters"
+    )
+
     # Create trainer
     trainer = Trainer(
         model=model,
@@ -441,19 +457,23 @@ def eval_model(
         val_loader=val_loader,
         checkpoint_dir="./checkpoints",
     )
-    
+
     logger.info("Trainer created")
-    
+
     # Load checkpoint
     logger.info(f"Loading checkpoint from {checkpoint_path}")
     checkpoint = trainer.load_checkpoint(checkpoint_path)
-    logger.info(f"Checkpoint loaded: epoch {checkpoint['epoch']}, loss {checkpoint['loss']}")
-    
+    logger.info(
+        f"Checkpoint loaded: epoch {checkpoint['epoch']}, loss {checkpoint['loss']}"
+    )
+
     # Evaluate model
     logger.info("Starting evaluation...")
     val_loss, val_perplexity = trainer.evaluate()
-    
-    logger.info(f"Evaluation completed - Loss: {val_loss:.4f}, Perplexity: {val_perplexity:.4f}")
+
+    logger.info(
+        f"Evaluation completed - Loss: {val_loss:.4f}, Perplexity: {val_perplexity:.4f}"
+    )
 
 
 @main.command()
@@ -466,23 +486,23 @@ def list_checkpoints(checkpoint_dir: str) -> None:
     """List available checkpoints."""
     import os
     from aksis.train.checkpoint import CheckpointManager
-    
+
     logger.info(f"Listing checkpoints in {checkpoint_dir}")
-    
+
     if not os.path.exists(checkpoint_dir):
         logger.warning(f"Checkpoint directory {checkpoint_dir} does not exist")
         return
-    
+
     # Create checkpoint manager
     checkpoint_manager = CheckpointManager(checkpoint_dir)
-    
+
     # List checkpoints
     checkpoints = checkpoint_manager.list_checkpoints()
-    
+
     if not checkpoints:
         logger.info("No checkpoints found")
         return
-    
+
     logger.info("Available checkpoints:")
     for checkpoint in checkpoints:
         logger.info(f"  - {checkpoint}")
@@ -504,12 +524,12 @@ def save_model(checkpoint_path: str, output_path: str) -> None:
     import torch
     from aksis.model.transformer import TransformerDecoder
     from aksis.data.tokenizer import Tokenizer
-    
+
     logger.info(f"Loading checkpoint from {checkpoint_path}")
-    
+
     # Load checkpoint
     checkpoint = torch.load(checkpoint_path, map_location="cpu")
-    
+
     # Create model
     model = TransformerDecoder(
         vocab_size=checkpoint["model_state_dict"]["embedding.weight"].shape[0],
@@ -520,10 +540,10 @@ def save_model(checkpoint_path: str, output_path: str) -> None:
         max_len=1000,
         dropout=0.1,
     )
-    
+
     # Load state dict
     model.load_state_dict(checkpoint["model_state_dict"])
-    
+
     # Save model
     torch.save(model.state_dict(), output_path)
     logger.info(f"Model saved to {output_path}")
@@ -598,15 +618,15 @@ def generate_text(
     )
     from aksis.data.tokenizer import Tokenizer
     from aksis.utils.device import get_device
-    
+
     logger.info(f"Generating text from prompt: {prompt[:50]}...")
-    
+
     # Get device
     device_obj = get_device(device)
-    
+
     # Load tokenizer
     tokenizer = Tokenizer()
-    
+
     # Load generator from checkpoint
     generator = Generator.load_from_checkpoint(
         checkpoint_path=checkpoint_path,
@@ -614,7 +634,7 @@ def generate_text(
         device=device_obj,
         use_mixed_precision=mixed_precision,
     )
-    
+
     # Create sampler
     if sampler == "greedy":
         sampler_obj = GreedySampler()
@@ -626,7 +646,7 @@ def generate_text(
         sampler_obj = TemperatureSampler(temperature=temperature)
     else:
         raise ValueError(f"Unknown sampler: {sampler}")
-    
+
     # Generate text
     logger.info("Generating text...")
     generated_text = generator.generate(
@@ -634,7 +654,7 @@ def generate_text(
         sampler=sampler_obj,
         max_new_tokens=max_new_tokens,
     )
-    
+
     # Display results
     click.echo(f"\nPrompt: {prompt}")
     click.echo(f"Generated: {generated_text}")
@@ -720,15 +740,15 @@ def chat_with_model(
     from aksis.inference.chatbot import ChatBot
     from aksis.data.tokenizer import Tokenizer
     from aksis.utils.device import get_device
-    
+
     logger.info("Starting interactive chat session...")
-    
+
     # Get device
     device_obj = get_device(device)
-    
+
     # Load tokenizer
     tokenizer = Tokenizer()
-    
+
     # Load generator from checkpoint
     generator = Generator.load_from_checkpoint(
         checkpoint_path=checkpoint_path,
@@ -736,7 +756,7 @@ def chat_with_model(
         device=device_obj,
         use_mixed_precision=mixed_precision,
     )
-    
+
     # Create sampler
     if sampler == "greedy":
         sampler_obj = GreedySampler()
@@ -748,13 +768,13 @@ def chat_with_model(
         sampler_obj = TemperatureSampler(temperature=temperature)
     else:
         raise ValueError(f"Unknown sampler: {sampler}")
-    
+
     # Create context manager
     context_manager = ContextManager(
         tokenizer=tokenizer,
         max_context_length=512,
     )
-    
+
     # Create chatbot
     chatbot = ChatBot(
         generator=generator,
@@ -763,7 +783,7 @@ def chat_with_model(
         system_prompt=system_prompt,
         max_new_tokens=max_new_tokens,
     )
-    
+
     # Load context if file exists
     if context_file and os.path.exists(context_file):
         try:
@@ -771,7 +791,7 @@ def chat_with_model(
             logger.info(f"Loaded context from {context_file}")
         except Exception as e:
             logger.warning(f"Failed to load context: {e}")
-    
+
     # Display welcome message
     click.echo("\n🤖 Aksis ChatBot - Interactive AI Assistant")
     click.echo("=" * 50)
@@ -783,13 +803,13 @@ def chat_with_model(
     click.echo("Type 'clear' to clear the conversation context")
     click.echo("Type 'info' to show chatbot information")
     click.echo("=" * 50)
-    
+
     # Chat loop
     try:
         while True:
             # Get user input
             user_input = click.prompt("\nYou", type=str)
-            
+
             # Handle special commands
             if user_input.lower() in ["quit", "exit", "bye"]:
                 click.echo("Goodbye! 👋")
@@ -801,12 +821,16 @@ def chat_with_model(
             elif user_input.lower() == "info":
                 info = chatbot.get_info()
                 click.echo(f"\nChatBot Info:")
-                click.echo(f"  Messages: {info['context_manager']['num_messages']}")
-                click.echo(f"  Tokens: {info['context_manager']['total_tokens']}")
+                click.echo(
+                    f"  Messages: {info['context_manager']['num_messages']}"
+                )
+                click.echo(
+                    f"  Tokens: {info['context_manager']['total_tokens']}"
+                )
                 click.echo(f"  Sampler: {info['sampler']}")
                 click.echo(f"  Max tokens: {info['max_new_tokens']}")
                 continue
-            
+
             # Generate response
             try:
                 response = chatbot.chat(user_input)
@@ -814,10 +838,10 @@ def chat_with_model(
             except Exception as e:
                 click.echo(f"\n❌ Error: {e}")
                 logger.error(f"Chat error: {e}")
-    
+
     except KeyboardInterrupt:
         click.echo("\n\nGoodbye! 👋")
-    
+
     # Save context if file specified
     if context_file:
         try:
@@ -904,15 +928,15 @@ def benchmark_inference(
     from aksis.inference.chatbot import ChatBot
     from aksis.data.tokenizer import Tokenizer
     from aksis.utils.device import get_device
-    
+
     logger.info("Starting inference benchmark...")
-    
+
     # Get device
     device_obj = get_device(device)
-    
+
     # Load tokenizer
     tokenizer = Tokenizer()
-    
+
     # Load generator from checkpoint
     generator = Generator.load_from_checkpoint(
         checkpoint_path=checkpoint_path,
@@ -920,7 +944,7 @@ def benchmark_inference(
         device=device_obj,
         use_mixed_precision=mixed_precision,
     )
-    
+
     # Create sampler
     if sampler == "greedy":
         sampler_obj = GreedySampler()
@@ -932,7 +956,7 @@ def benchmark_inference(
         sampler_obj = TemperatureSampler(temperature=temperature)
     else:
         raise ValueError(f"Unknown sampler: {sampler}")
-    
+
     # Create context manager and chatbot
     context_manager = ContextManager(tokenizer=tokenizer)
     chatbot = ChatBot(
@@ -940,7 +964,7 @@ def benchmark_inference(
         context_manager=context_manager,
         sampler=sampler_obj,
     )
-    
+
     # Run benchmark
     logger.info(f"Running {num_runs} benchmark runs...")
     results = chatbot.benchmark_generation(
@@ -948,7 +972,7 @@ def benchmark_inference(
         num_runs=num_runs,
         max_new_tokens=max_new_tokens,
     )
-    
+
     # Display results
     click.echo("\n🚀 Inference Benchmark Results")
     click.echo("=" * 40)
@@ -963,6 +987,378 @@ def benchmark_inference(
     click.echo(f"Tokens per second: {results['tokens_per_second']:.2f}")
     click.echo(f"Prompt length: {results['prompt_length']} chars")
     click.echo("=" * 40)
+
+
+@main.command()
+@click.option(
+    "--checkpoint",
+    required=True,
+    help="Path to model checkpoint to evaluate.",
+)
+@click.option(
+    "--dataset",
+    default="wikitext-2",
+    help="Dataset to evaluate on.",
+)
+@click.option(
+    "--split",
+    default="test",
+    help="Dataset split to use.",
+)
+@click.option(
+    "--output",
+    default="evaluation_results.json",
+    help="Output file for evaluation results.",
+)
+@click.option(
+    "--batch-size",
+    default=16,
+    help="Batch size for evaluation.",
+)
+@click.option(
+    "--max-length",
+    default=512,
+    help="Maximum sequence length.",
+)
+@click.option(
+    "--mixed-precision/--no-mixed-precision",
+    default=True,
+    help="Use mixed precision evaluation.",
+)
+def eval_model(
+    checkpoint: str,
+    dataset: str,
+    split: str,
+    output: str,
+    batch_size: int,
+    max_length: int,
+    mixed_precision: bool,
+) -> None:
+    """Evaluate a trained model on a dataset."""
+    from aksis.eval.evaluator import Evaluator
+    from aksis.data.dataloader import DataLoader
+    from aksis.model.transformer import TransformerDecoder
+    from aksis.data.tokenizer import Tokenizer
+    import torch
+
+    logger.info(f"Evaluating model: {checkpoint}")
+    logger.info(f"Dataset: {dataset} ({split} split)")
+
+    # Load model and tokenizer
+    device = get_device()
+    checkpoint_data = torch.load(checkpoint, map_location=device)
+    
+    # Create model
+    model = TransformerDecoder(
+        vocab_size=checkpoint_data.get("vocab_size", 10000),
+        d_model=checkpoint_data.get("d_model", 512),
+        num_heads=checkpoint_data.get("num_heads", 8),
+        num_layers=checkpoint_data.get("num_layers", 6),
+        d_ff=checkpoint_data.get("d_ff", 2048),
+        max_length=checkpoint_data.get("max_length", 512),
+        dropout=checkpoint_data.get("dropout", 0.1),
+    )
+    
+    # Load model weights
+    if "model_state_dict" in checkpoint_data:
+        model.load_state_dict(checkpoint_data["model_state_dict"])
+    else:
+        model.load_state_dict(checkpoint_data)
+    
+    model.to(device)
+    
+    # Create tokenizer
+    tokenizer = Tokenizer()
+    
+    # Create evaluator
+    evaluator = Evaluator(
+        model=model,
+        tokenizer=tokenizer,
+        device=device,
+        use_mixed_precision=mixed_precision,
+    )
+    
+    # Load dataset
+    dataloader = DataLoader(
+        dataset_name=dataset,
+        split=split,
+        tokenizer=tokenizer,
+        batch_size=batch_size,
+        max_length=max_length,
+        shuffle=False,
+    )
+    
+    # Convert dataloader to evaluation format
+    eval_data = []
+    for batch in dataloader:
+        if isinstance(batch, dict):
+            input_ids = batch["input_ids"]
+            for i in range(input_ids.size(0)):
+                # Decode input and target
+                input_text = tokenizer.decode(input_ids[i].tolist())
+                target_text = input_text  # For language modeling, target is same as input
+                eval_data.append({"input": input_text, "target": target_text})
+        else:
+            for i in range(batch.size(0)):
+                input_text = tokenizer.decode(batch[i].tolist())
+                eval_data.append({"input": input_text, "target": input_text})
+    
+    # Evaluate
+    logger.info(f"Evaluating on {len(eval_data)} samples...")
+    results = evaluator.evaluate_dataset(eval_data)
+    
+    # Save results
+    evaluator.save_results(results, output)
+    
+    # Display results
+    click.echo("\n📊 Evaluation Results")
+    click.echo("=" * 40)
+    click.echo(f"Dataset: {dataset} ({split})")
+    click.echo(f"Checkpoint: {checkpoint}")
+    click.echo(f"Samples: {len(eval_data)}")
+    click.echo("-" * 40)
+    for metric, value in results.items():
+        if isinstance(value, float):
+            click.echo(f"{metric}: {value:.4f}")
+        else:
+            click.echo(f"{metric}: {value}")
+    click.echo(f"Results saved to: {output}")
+    click.echo("=" * 40)
+
+
+@main.command()
+@click.option(
+    "--checkpoint",
+    required=True,
+    help="Path to pre-trained model checkpoint.",
+)
+@click.option(
+    "--dataset",
+    default="dailydialog",
+    help="Chatbot dataset to fine-tune on.",
+)
+@click.option(
+    "--output-dir",
+    default="fine_tuned_models",
+    help="Directory to save fine-tuned models.",
+)
+@click.option(
+    "--learning-rate",
+    default=1e-4,
+    help="Learning rate for fine-tuning.",
+)
+@click.option(
+    "--batch-size",
+    default=16,
+    help="Batch size for fine-tuning.",
+)
+@click.option(
+    "--epochs",
+    default=3,
+    help="Number of epochs to fine-tune.",
+)
+@click.option(
+    "--max-length",
+    default=512,
+    help="Maximum sequence length.",
+)
+@click.option(
+    "--mixed-precision/--no-mixed-precision",
+    default=True,
+    help="Use mixed precision training.",
+)
+@click.option(
+    "--early-stopping-patience",
+    default=3,
+    help="Early stopping patience.",
+)
+def fine_tune_model(
+    checkpoint: str,
+    dataset: str,
+    output_dir: str,
+    learning_rate: float,
+    batch_size: int,
+    epochs: int,
+    max_length: int,
+    mixed_precision: bool,
+    early_stopping_patience: int,
+) -> None:
+    """Fine-tune a pre-trained model on a chatbot dataset."""
+    from aksis.eval.fine_tuner import FineTuner
+    from aksis.eval.dataset import ChatbotDataLoader
+    from aksis.model.transformer import TransformerDecoder
+    from aksis.data.tokenizer import Tokenizer
+    import torch
+    import os
+
+    logger.info(f"Fine-tuning model: {checkpoint}")
+    logger.info(f"Dataset: {dataset}")
+    logger.info(f"Output directory: {output_dir}")
+
+    # Create output directory
+    os.makedirs(output_dir, exist_ok=True)
+
+    # Load model and tokenizer
+    device = get_device()
+    checkpoint_data = torch.load(checkpoint, map_location=device)
+    
+    # Create model
+    model = TransformerDecoder(
+        vocab_size=checkpoint_data.get("vocab_size", 10000),
+        d_model=checkpoint_data.get("d_model", 512),
+        num_heads=checkpoint_data.get("num_heads", 8),
+        num_layers=checkpoint_data.get("num_layers", 6),
+        d_ff=checkpoint_data.get("d_ff", 2048),
+        max_length=checkpoint_data.get("max_length", 512),
+        dropout=checkpoint_data.get("dropout", 0.1),
+    )
+    
+    # Load model weights
+    if "model_state_dict" in checkpoint_data:
+        model.load_state_dict(checkpoint_data["model_state_dict"])
+    else:
+        model.load_state_dict(checkpoint_data)
+    
+    model.to(device)
+    
+    # Create tokenizer
+    tokenizer = Tokenizer()
+    
+    # Create fine-tuner
+    fine_tuner = FineTuner(
+        model=model,
+        tokenizer=tokenizer,
+        device=device,
+        learning_rate=learning_rate,
+        batch_size=batch_size,
+        max_epochs=epochs,
+        early_stopping_patience=early_stopping_patience,
+        use_mixed_precision=mixed_precision,
+    )
+    
+    # Load chatbot dataset
+    data_loader = ChatbotDataLoader(
+        tokenizer=tokenizer,
+        max_length=max_length,
+    )
+    
+    try:
+        # Load dataset
+        chatbot_dataset = data_loader.load_dataset(
+            dataset_name=dataset,
+            split="train",
+            num_samples=100,  # Limit for demo
+        )
+        
+        # Split dataset
+        train_dataset, val_dataset, test_dataset = data_loader.split_dataset(
+            chatbot_dataset,
+            train_ratio=0.8,
+            val_ratio=0.1,
+            test_ratio=0.1,
+        )
+        
+        # Create data loaders
+        train_loader = data_loader.create_dataloader(
+            train_dataset,
+            batch_size=batch_size,
+            shuffle=True,
+        )
+        val_loader = data_loader.create_dataloader(
+            val_dataset,
+            batch_size=batch_size,
+            shuffle=False,
+        )
+        
+        # Fine-tune
+        logger.info("Starting fine-tuning...")
+        results = fine_tuner.fine_tune(
+            train_dataloader=train_loader,
+            val_dataloader=val_loader,
+            output_dir=output_dir,
+            save_best_only=True,
+        )
+        
+        # Display results
+        click.echo("\n🎯 Fine-tuning Results")
+        click.echo("=" * 40)
+        click.echo(f"Dataset: {dataset}")
+        click.echo(f"Checkpoint: {checkpoint}")
+        click.echo(f"Epochs: {epochs}")
+        click.echo(f"Learning rate: {learning_rate}")
+        click.echo(f"Batch size: {batch_size}")
+        click.echo("-" * 40)
+        click.echo(f"Total epochs: {results['total_epochs']}")
+        click.echo(f"Best validation loss: {results['best_val_loss']:.4f}")
+        click.echo(f"Output directory: {output_dir}")
+        click.echo("=" * 40)
+        
+    except Exception as e:
+        logger.error(f"Fine-tuning failed: {e}")
+        click.echo(f"❌ Fine-tuning failed: {e}")
+        raise
+
+
+@main.command()
+@click.option(
+    "--results-file",
+    required=True,
+    help="Path to evaluation results file.",
+)
+@click.option(
+    "--output-dir",
+    default="plots",
+    help="Directory to save plots.",
+)
+@click.option(
+    "--format",
+    default="png",
+    type=click.Choice(["png", "pdf", "svg"]),
+    help="Plot format.",
+)
+def plot_metrics(
+    results_file: str,
+    output_dir: str,
+    format: str,
+) -> None:
+    """Generate plots from evaluation results."""
+    from aksis.eval.visualizer import Visualizer
+    import json
+    import os
+
+    logger.info(f"Generating plots from: {results_file}")
+    logger.info(f"Output directory: {output_dir}")
+
+    # Create output directory
+    os.makedirs(output_dir, exist_ok=True)
+
+    # Load results
+    with open(results_file, "r") as f:
+        results = json.load(f)
+
+    # Create visualizer
+    visualizer = Visualizer(output_dir=output_dir)
+
+    # Generate plots
+    if "perplexity" in results or "bleu" in results or "rouge" in results:
+        # Evaluation metrics plot
+        plot_path = visualizer.plot_evaluation_metrics(
+            metrics=results,
+            title="Model Evaluation Metrics",
+            save_path=os.path.join(output_dir, f"evaluation_metrics.{format}"),
+        )
+        click.echo(f"📊 Evaluation metrics plot saved: {plot_path}")
+
+    if "history" in results:
+        # Training history plot
+        plot_path = visualizer.plot_loss_perplexity(
+            history=results["history"],
+            title="Training History",
+            save_path=os.path.join(output_dir, f"training_history.{format}"),
+        )
+        click.echo(f"📈 Training history plot saved: {plot_path}")
+
+    click.echo(f"✅ Plots generated in: {output_dir}")
 
 
 if __name__ == "__main__":

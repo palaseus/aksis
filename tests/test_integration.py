@@ -141,8 +141,12 @@ class TestModelDataLoaderIntegration:
         # Verify gradients exist and are not NaN
         for name, param in model.named_parameters():
             if param.grad is not None:
-                assert not torch.isnan(param.grad).any(), f"NaN gradient in {name}"
-                assert not torch.isinf(param.grad).any(), f"Inf gradient in {name}"
+                assert not torch.isnan(
+                    param.grad
+                ).any(), f"NaN gradient in {name}"
+                assert not torch.isinf(
+                    param.grad
+                ).any(), f"Inf gradient in {name}"
 
     def test_model_with_dataloader_mixed_precision(self):
         """Test model with DataLoader using mixed precision."""
@@ -411,7 +415,8 @@ class TestModelDataLoaderIntegration:
         """Test model with DataLoader using large batch."""
         # Create many texts
         texts = [
-            f"This is test text number {i} for large batch testing." for i in range(100)
+            f"This is test text number {i} for large batch testing."
+            for i in range(100)
         ]
 
         # Create tokenizer and build vocabulary

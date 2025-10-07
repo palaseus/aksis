@@ -43,7 +43,9 @@ class TestTransformerDecoder:
 
         # Check components
         assert isinstance(transformer.embedding, nn.Embedding)
-        assert isinstance(transformer.pos_encoding, SinusoidalPositionalEncoding)
+        assert isinstance(
+            transformer.pos_encoding, SinusoidalPositionalEncoding
+        )
         assert isinstance(transformer.dropout, nn.Dropout)
         assert len(transformer.layers) == num_layers
 
@@ -60,7 +62,9 @@ class TestTransformerDecoder:
         vocab_size = 10000
         d_model = 512
 
-        transformer = TransformerDecoder(vocab_size=vocab_size, d_model=d_model)
+        transformer = TransformerDecoder(
+            vocab_size=vocab_size, d_model=d_model
+        )
 
         assert transformer.vocab_size == vocab_size
         assert transformer.d_model == d_model
@@ -77,7 +81,9 @@ class TestTransformerDecoder:
         vocab_size = 10000
         d_model = 512
 
-        transformer = TransformerDecoder(vocab_size=vocab_size, d_model=d_model)
+        transformer = TransformerDecoder(
+            vocab_size=vocab_size, d_model=d_model
+        )
         x = torch.randint(0, vocab_size, (batch_size, seq_len))
 
         output = transformer(x)
@@ -92,7 +98,9 @@ class TestTransformerDecoder:
         vocab_size = 10000
         d_model = 512
 
-        transformer = TransformerDecoder(vocab_size=vocab_size, d_model=d_model)
+        transformer = TransformerDecoder(
+            vocab_size=vocab_size, d_model=d_model
+        )
         x = torch.randint(0, vocab_size, (batch_size, seq_len))
 
         # Create causal mask
@@ -110,7 +118,9 @@ class TestTransformerDecoder:
         vocab_size = 10000
         d_model = 512
 
-        transformer = TransformerDecoder(vocab_size=vocab_size, d_model=d_model)
+        transformer = TransformerDecoder(
+            vocab_size=vocab_size, d_model=d_model
+        )
         x = torch.randint(0, vocab_size, (batch_size, seq_len))
 
         # Create padding mask (0s for padding tokens)
@@ -126,7 +136,9 @@ class TestTransformerDecoder:
         vocab_size = 10000
         d_model = 512
 
-        transformer = TransformerDecoder(vocab_size=vocab_size, d_model=d_model)
+        transformer = TransformerDecoder(
+            vocab_size=vocab_size, d_model=d_model
+        )
 
         assert transformer.embedding.num_embeddings == vocab_size
         assert transformer.embedding.embedding_dim == d_model
@@ -236,7 +248,9 @@ class TestTransformerDecoder:
         vocab_size = 10000
         d_model = 512
 
-        transformer = TransformerDecoder(vocab_size=vocab_size, d_model=d_model).cuda()
+        transformer = TransformerDecoder(
+            vocab_size=vocab_size, d_model=d_model
+        ).cuda()
         x = torch.randint(0, vocab_size, (batch_size, seq_len)).cuda()
 
         output = transformer(x)
@@ -254,7 +268,9 @@ class TestTransformerDecoder:
         vocab_size = 10000
         d_model = 512
 
-        transformer = TransformerDecoder(vocab_size=vocab_size, d_model=d_model).cuda()
+        transformer = TransformerDecoder(
+            vocab_size=vocab_size, d_model=d_model
+        ).cuda()
         x = torch.randint(0, vocab_size, (batch_size, seq_len)).cuda()
 
         with torch.amp.autocast("cuda"):
@@ -271,7 +287,9 @@ class TestTransformerDecoder:
         vocab_size = 10000
         d_model = 512
 
-        transformer = TransformerDecoder(vocab_size=vocab_size, d_model=d_model)
+        transformer = TransformerDecoder(
+            vocab_size=vocab_size, d_model=d_model
+        )
         x = torch.randint(0, vocab_size, (batch_size, seq_len))
 
         output = transformer(x)
@@ -285,7 +303,9 @@ class TestTransformerDecoder:
         vocab_size = 10000
         d_model = 512
 
-        transformer = TransformerDecoder(vocab_size=vocab_size, d_model=d_model)
+        transformer = TransformerDecoder(
+            vocab_size=vocab_size, d_model=d_model
+        )
         x = torch.randint(0, vocab_size, (batch_size, seq_len))
 
         output = transformer(x)
@@ -299,7 +319,9 @@ class TestTransformerDecoder:
         vocab_size = 10000
         d_model = 512
 
-        transformer = TransformerDecoder(vocab_size=vocab_size, d_model=d_model)
+        transformer = TransformerDecoder(
+            vocab_size=vocab_size, d_model=d_model
+        )
         x = torch.randint(0, vocab_size, (batch_size, seq_len))
 
         output = transformer(x)
@@ -314,7 +336,9 @@ class TestTransformerDecoder:
         vocab_size = 10000
         d_model = 512
 
-        transformer = TransformerDecoder(vocab_size=vocab_size, d_model=d_model)
+        transformer = TransformerDecoder(
+            vocab_size=vocab_size, d_model=d_model
+        )
         x = torch.randint(0, vocab_size, (batch_size, seq_len))
 
         output = transformer(x)
@@ -360,7 +384,9 @@ class TestTransformerDecoder:
             + 2 * d_model
             + 2 * d_model  # layer norms (weight + bias)
         )
-        expected_output_proj = d_model * vocab_size + vocab_size  # weight + bias
+        expected_output_proj = (
+            d_model * vocab_size + vocab_size
+        )  # weight + bias
         expected_final_norm = d_model + d_model  # weight + bias
         expected_total = (
             expected_embedding
@@ -424,7 +450,9 @@ class TestTransformerDecoder:
         vocab_size = 10000
         d_model = 512
 
-        transformer = TransformerDecoder(vocab_size=vocab_size, d_model=d_model)
+        transformer = TransformerDecoder(
+            vocab_size=vocab_size, d_model=d_model
+        )
         transformer.eval()  # Disable dropout for consistency
         x = torch.randint(0, vocab_size, (batch_size, seq_len))
 
@@ -449,7 +477,9 @@ class TestTransformerDecoder:
         d_model = 512
 
         # Test CPU
-        transformer_cpu = TransformerDecoder(vocab_size=vocab_size, d_model=d_model)
+        transformer_cpu = TransformerDecoder(
+            vocab_size=vocab_size, d_model=d_model
+        )
         x_cpu = torch.randint(0, vocab_size, (batch_size, seq_len))
         output_cpu = transformer_cpu(x_cpu)
         assert output_cpu.device.type == "cpu"

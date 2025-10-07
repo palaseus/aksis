@@ -204,7 +204,9 @@ class Tokenizer:
             for text in texts
         ]
 
-    def decode(self, token_ids: List[int], skip_special_tokens: bool = True) -> str:
+    def decode(
+        self, token_ids: List[int], skip_special_tokens: bool = True
+    ) -> str:
         """
         Decode token IDs back to text.
 
@@ -237,7 +239,9 @@ class Tokenizer:
         return " ".join(tokens)
 
     def decode_batch(
-        self, token_id_batches: List[List[int]], skip_special_tokens: bool = True
+        self,
+        token_id_batches: List[List[int]],
+        skip_special_tokens: bool = True,
     ) -> List[str]:
         """
         Decode a batch of token ID sequences.
@@ -298,7 +302,9 @@ class Tokenizer:
             vocab_data = json.load(f)
 
         self.token_to_id = vocab_data["token_to_id"]
-        self.id_to_token = {int(k): v for k, v in vocab_data["id_to_token"].items()}
+        self.id_to_token = {
+            int(k): v for k, v in vocab_data["id_to_token"].items()
+        }
         self.vocab_size = vocab_data["vocab_size"]
 
         # Load special tokens

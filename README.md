@@ -10,7 +10,8 @@ A complete transformer-based language model built from scratch using Python and 
 - **Code Quality**: Strict linting with Black, Flake8, and MyPy
 - **Modular Architecture**: Clean, scalable codebase structure
 - **Chatbot Interface**: Interactive CLI for real-time conversations
-- **Fine-tuning Capabilities**: Support for domain-specific training
+- **Evaluation & Fine-Tuning**: Comprehensive evaluation metrics (BLEU, ROUGE, Perplexity) and fine-tuning on chatbot datasets
+- **Visualization Tools**: Plot training curves, evaluation metrics, and hyperparameter search results
 
 ## 📁 Project Structure
 
@@ -19,16 +20,17 @@ aksis/
 ├── src/                    # Source code
 │   ├── aksis/             # Main package
 │   │   ├── data/          # Data handling modules
-│   │   ├── models/        # Model architectures
-│   │   ├── training/      # Training loops and utilities
+│   │   ├── model/         # Transformer architecture
+│   │   ├── train/         # Training loops and utilities
 │   │   ├── inference/     # Inference and chat interface
+│   │   ├── eval/          # Evaluation and fine-tuning
 │   │   └── utils/         # Utility functions
 │   └── cli.py             # Command-line interface
 ├── tests/                 # Test suite
 ├── data/                  # Datasets and data files
-├── models/                # Model checkpoints and logs
+├── checkpoints/           # Model checkpoints
+├── results/               # Evaluation results and plots
 ├── docs/                  # Documentation
-├── requirements.txt       # Python dependencies
 ├── pyproject.toml         # Project configuration
 └── README.md             # This file
 ```
@@ -59,7 +61,7 @@ aksis/
    ```bash
    # For CPU-only installation
    pip install -r requirements.txt
-   
+
    # For CUDA support (recommended)
    pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
    pip install -r requirements.txt
@@ -195,6 +197,73 @@ python -m aksis.cli load-data --dataset wikitext2 --batch-size 4 --max-length 25
 python -m aksis.cli tokenize --text "Hello, world! This is Aksis."
 ```
 
+### Model Evaluation
+
+```bash
+# Evaluate model on test dataset
+python -m aksis.cli eval-model \
+    --checkpoint-path ./checkpoints/epoch_10.pt \
+    --dataset wikitext2 \
+    --metrics bleu rouge perplexity \
+    --output results/evaluation.json
+
+# Evaluate with custom test data
+python -m aksis.cli eval-model \
+    --checkpoint-path ./checkpoints/epoch_10.pt \
+    --test-file ./data/custom_test.json \
+    --batch-size 16
+```
+
+### Fine-Tuning
+
+```bash
+# Fine-tune model on chatbot dataset
+python -m aksis.cli fine-tune-model \
+    --checkpoint-path ./checkpoints/epoch_10.pt \
+    --dataset daily_dialog \
+    --epochs 5 \
+    --learning-rate 1e-4 \
+    --batch-size 16 \
+    --early-stopping
+
+# Fine-tune with hyperparameter search
+python -m aksis.cli fine-tune-model \
+    --checkpoint-path ./checkpoints/epoch_10.pt \
+    --dataset persona_chat \
+    --hyperparameter-search \
+    --learning-rates 1e-5 5e-5 1e-4 \
+    --batch-sizes 8 16 32 \
+    --max-trials 9
+
+# Fine-tune on custom chatbot dataset
+python -m aksis.cli fine-tune-model \
+    --checkpoint-path ./checkpoints/epoch_10.pt \
+    --train-file ./data/train_conversations.json \
+    --val-file ./data/val_conversations.json \
+    --epochs 10 \
+    --mixed-precision
+```
+
+### Visualization
+
+```bash
+# Plot training metrics
+python -m aksis.cli plot-metrics \
+    --history-file results/training_history.json \
+    --output plots/training_curves.png
+
+# Plot evaluation metrics
+python -m aksis.cli plot-metrics \
+    --results-file results/evaluation.json \
+    --output plots/evaluation_metrics.png
+
+# Create summary report
+python -m aksis.cli plot-metrics \
+    --history-file results/training_history.json \
+    --results-file results/evaluation.json \
+    --output plots/summary_report.png
+```
+
 ## 🤖 Inference & Sampling
 
 Aksis supports multiple sampling strategies for text generation:
@@ -222,6 +291,34 @@ The chatbot maintains conversation history with:
 - **Device Detection**: Automatic GPU detection with CPU fallback
 - **Efficient Generation**: Token-by-token generation with early stopping
 - **KV Caching**: (planned) Cache key-value states for faster sequential decoding
+
+## 📈 Evaluation & Fine-Tuning
+
+### Evaluation Metrics
+
+Aksis provides comprehensive model evaluation with:
+
+- **BLEU Scores**: N-gram overlap (BLEU-1, BLEU-2, BLEU-3, BLEU-4) for text quality
+- **ROUGE Scores**: Recall-oriented metrics (ROUGE-1, ROUGE-2, ROUGE-L) for summarization
+- **Perplexity**: Model confidence and language modeling capability
+- **Reference-Based**: Compare generated text against reference texts
+- **Batch Processing**: Efficient evaluation on large test sets
+
+### Fine-Tuning Features
+
+- **Domain Adaptation**: Fine-tune on specific tasks or domains
+- **Chatbot Datasets**: Support for DailyDialog, PersonaChat, and custom datasets
+- **Hyperparameter Search**: Automated search for optimal hyperparameters
+- **Early Stopping**: Prevent overfitting with validation-based stopping
+- **Mixed Precision**: Fast training with automatic mixed precision
+- **Checkpointing**: Save best models based on validation metrics
+
+### Visualization Tools
+
+- **Training Curves**: Plot loss and perplexity over epochs
+- **Evaluation Metrics**: Visualize BLEU, ROUGE scores across checkpoints
+- **Hyperparameter Search**: Compare results across different configurations
+- **Summary Reports**: Comprehensive visualizations combining multiple metrics
 
 ## 📊 Model Architecture
 

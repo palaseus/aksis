@@ -42,7 +42,8 @@ class SinusoidalPositionalEncoding(nn.Module):
 
         # Create div_term for the sinusoidal functions
         div_term = torch.exp(
-            torch.arange(0, d_model, 2).float() * (-math.log(10000.0) / d_model)
+            torch.arange(0, d_model, 2).float()
+            * (-math.log(10000.0) / d_model)
         )
 
         # Apply sin to even indices
@@ -103,7 +104,9 @@ class SinusoidalPositionalEncoding(nn.Module):
 
         # Create div_term for the sinusoidal functions
         div_term = torch.exp(
-            torch.arange(0, self.d_model, 2, dtype=torch.float, device=self.pe.device)
+            torch.arange(
+                0, self.d_model, 2, dtype=torch.float, device=self.pe.device
+            )
             * (-math.log(10000.0) / self.d_model)
         )
 

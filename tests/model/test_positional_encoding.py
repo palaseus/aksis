@@ -52,8 +52,12 @@ class TestSinusoidalPositionalEncoding:
         assert torch.allclose(pe[0, 1], torch.tensor(1.0), atol=1e-6)
 
         # Position 1: sin(1/10000^0) = sin(1), cos(1/10000^0) = cos(1)
-        assert torch.allclose(pe[1, 0], torch.sin(torch.tensor(1.0)), atol=1e-6)
-        assert torch.allclose(pe[1, 1], torch.cos(torch.tensor(1.0)), atol=1e-6)
+        assert torch.allclose(
+            pe[1, 0], torch.sin(torch.tensor(1.0)), atol=1e-6
+        )
+        assert torch.allclose(
+            pe[1, 1], torch.cos(torch.tensor(1.0)), atol=1e-6
+        )
 
     def test_positional_encoding_sinusoidal_property(self) -> None:
         """Test that positional encoding follows sinusoidal pattern."""
@@ -77,7 +81,9 @@ class TestSinusoidalPositionalEncoding:
                     expected_cos = torch.cos(
                         torch.tensor(pos) / (10000 ** (i / d_model))
                     )
-                    assert torch.allclose(pe[pos, i + 1], expected_cos, atol=1e-6)
+                    assert torch.allclose(
+                        pe[pos, i + 1], expected_cos, atol=1e-6
+                    )
 
     def test_positional_encoding_additive(self) -> None:
         """Test that positional encoding is added to input."""
@@ -176,7 +182,9 @@ class TestSinusoidalPositionalEncoding:
         ).cuda()  # No dropout for mixed precision test
 
         with torch.amp.autocast("cuda"):
-            x = torch.randn(batch_size, seq_len, d_model, dtype=torch.float16).cuda()
+            x = torch.randn(
+                batch_size, seq_len, d_model, dtype=torch.float16
+            ).cuda()
             output = pos_enc(x)
 
         # Mixed precision may not always produce float16 due to dropout

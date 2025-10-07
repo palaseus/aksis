@@ -96,9 +96,15 @@ class MultiHeadAttention(nn.Module):
         k_seq_len = K.size(1)
         v_seq_len = V.size(1)
 
-        Q = Q.view(batch_size, q_seq_len, self.num_heads, self.d_k).transpose(1, 2)
-        K = K.view(batch_size, k_seq_len, self.num_heads, self.d_k).transpose(1, 2)
-        V = V.view(batch_size, v_seq_len, self.num_heads, self.d_k).transpose(1, 2)
+        Q = Q.view(batch_size, q_seq_len, self.num_heads, self.d_k).transpose(
+            1, 2
+        )
+        K = K.view(batch_size, k_seq_len, self.num_heads, self.d_k).transpose(
+            1, 2
+        )
+        V = V.view(batch_size, v_seq_len, self.num_heads, self.d_k).transpose(
+            1, 2
+        )
         # Shape: [batch_size, num_heads, seq_len, d_k]
 
         # Compute attention scores
@@ -126,7 +132,9 @@ class MultiHeadAttention(nn.Module):
 
         # Concatenate heads
         context = (
-            context.transpose(1, 2).contiguous().view(batch_size, seq_len, d_model)
+            context.transpose(1, 2)
+            .contiguous()
+            .view(batch_size, seq_len, d_model)
         )
         # Shape: [batch_size, seq_len, d_model]
 
@@ -164,9 +172,15 @@ class MultiHeadAttention(nn.Module):
         V = self.w_v(value)
 
         # Reshape for multi-head attention
-        Q = Q.view(batch_size, seq_len, self.num_heads, self.d_k).transpose(1, 2)
-        K = K.view(batch_size, seq_len, self.num_heads, self.d_k).transpose(1, 2)
-        V = V.view(batch_size, seq_len, self.num_heads, self.d_k).transpose(1, 2)
+        Q = Q.view(batch_size, seq_len, self.num_heads, self.d_k).transpose(
+            1, 2
+        )
+        K = K.view(batch_size, seq_len, self.num_heads, self.d_k).transpose(
+            1, 2
+        )
+        V = V.view(batch_size, seq_len, self.num_heads, self.d_k).transpose(
+            1, 2
+        )
 
         # Compute attention scores
         scores = torch.matmul(Q, K.transpose(-2, -1)) / self.scale
@@ -188,7 +202,9 @@ class MultiHeadAttention(nn.Module):
 
         # Concatenate heads
         context = (
-            context.transpose(1, 2).contiguous().view(batch_size, seq_len, d_model)
+            context.transpose(1, 2)
+            .contiguous()
+            .view(batch_size, seq_len, d_model)
         )
 
         # Final linear projection
