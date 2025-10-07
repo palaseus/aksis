@@ -52,7 +52,7 @@ aksis = "aksis.cli:main"
 where = ["src"]
 
 [tool.black]
-line-length = 88
+line-length = 79
 target-version = ['py310']
 include = '\.pyi?$'
 extend-exclude = '''

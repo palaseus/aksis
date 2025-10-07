@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 class TextDataset(Dataset):
     """
     PyTorch Dataset for text data.
-    
+
     This dataset handles tokenization, padding, and truncation of text sequences.
     """
 
@@ -29,7 +29,7 @@ class TextDataset(Dataset):
     ) -> None:
         """
         Initialize the dataset.
-        
+
         Args:
             texts: List of text strings.
             tokenizer: Tokenizer instance for encoding texts.
@@ -52,15 +52,15 @@ class TextDataset(Dataset):
     def __getitem__(self, idx: int) -> Dict[str, torch.Tensor]:
         """
         Get a single item from the dataset.
-        
+
         Args:
             idx: Index of the item to retrieve.
-            
+
         Returns:
             Dictionary containing input_ids and attention_mask tensors.
         """
         text = self.texts[idx]
-        
+
         # Encode the text
         input_ids = self.tokenizer.encode(
             text=text,
@@ -69,13 +69,13 @@ class TextDataset(Dataset):
             truncation=self.truncation,
             padding=self.padding,
         )
-        
+
         # Create attention mask (1 for real tokens, 0 for padding)
         attention_mask = [
             1 if token_id != self.tokenizer.pad_token_id else 0
             for token_id in input_ids
         ]
-        
+
         return {
             "input_ids": torch.tensor(input_ids, dtype=torch.long),
             "attention_mask": torch.tensor(attention_mask, dtype=torch.long),
@@ -85,7 +85,7 @@ class TextDataset(Dataset):
 class DataLoader:
     """
     DataLoader for text data with CUDA support.
-    
+
     This DataLoader wraps PyTorch's DataLoader with additional functionality
     for text processing and CUDA tensor management.
     """
@@ -107,7 +107,7 @@ class DataLoader:
     ) -> None:
         """
         Initialize the DataLoader.
-        
+
         Args:
             texts: List of text strings to load.
             tokenizer: Tokenizer instance for encoding texts.
@@ -126,10 +126,15 @@ class DataLoader:
         self.tokenizer = tokenizer
         self.batch_size = batch_size
         self.shuffle = shuffle
-        self.device = get_device(device if isinstance(device, str) else None)
+        if device is None:
+            self.device = get_device()
+        elif isinstance(device, str):
+            self.device = get_device(device)
+        else:
+            self.device = device
         # Only use pin_memory for CPU tensors
         self.pin_memory = pin_memory and self.device.type == "cpu"
-        
+
         # Create dataset
         self.dataset = TextDataset(
             texts=texts,
@@ -139,7 +144,7 @@ class DataLoader:
             truncation=truncation,
             add_special_tokens=add_special_tokens,
         )
-        
+
         # Create PyTorch DataLoader (only if dataset is not empty)
         if len(self.dataset) > 0:
             self.dataloader: Optional[TorchDataLoader] = TorchDataLoader(
@@ -153,56 +158,66 @@ class DataLoader:
             )
         else:
             self.dataloader = None
-        
+
         logger.info(
             f"DataLoader initialized with {len(texts)} texts, "
             f"batch_size={batch_size}, device={self.device}"
         )
 
-    def _collate_fn(self, batch: List[Dict[str, torch.Tensor]]) -> Dict[str, torch.Tensor]:
+    def _collate_fn(
+        self, batch: List[Dict[str, torch.Tensor]]
+    ) -> Dict[str, torch.Tensor]:
         """
         Collate function for batching.
-        
+
         Args:
             batch: List of samples from the dataset.
-            
+
         Returns:
             Batched tensors.
         """
         # Get max length in batch
         max_length = max(item["input_ids"].shape[0] for item in batch)
-        
+
         # Pad sequences to max length
         padded_input_ids = []
         padded_attention_mask = []
-        
+
         for item in batch:
             input_ids = item["input_ids"]
             attention_mask = item["attention_mask"]
-            
+
             # Pad if necessary
             if input_ids.shape[0] < max_length:
                 pad_length = max_length - input_ids.shape[0]
-                input_ids = torch.cat([
-                    input_ids,
-                    torch.full((pad_length,), self.tokenizer.pad_token_id, dtype=input_ids.dtype)
-                ])
-                attention_mask = torch.cat([
-                    attention_mask,
-                    torch.zeros(pad_length, dtype=attention_mask.dtype)
-                ])
-            
+                input_ids = torch.cat(
+                    [
+                        input_ids,
+                        torch.full(
+                            (pad_length,),
+                            self.tokenizer.pad_token_id,
+                            dtype=input_ids.dtype,
+                        ),
+                    ]
+                )
+                attention_mask = torch.cat(
+                    [
+                        attention_mask,
+                        torch.zeros(pad_length, dtype=attention_mask.dtype),
+                    ]
+                )
+
             padded_input_ids.append(input_ids)
             padded_attention_mask.append(attention_mask)
-        
+
         # Stack tensors
         input_ids = torch.stack(padded_input_ids)
         attention_mask = torch.stack(padded_attention_mask)
-        
+
         # Move to device
         input_ids = input_ids.to(self.device)
         attention_mask = attention_mask.to(self.device)
-        
+
         return {
             "input_ids": input_ids,
             "attention_mask": attention_mask,
@@ -224,16 +239,16 @@ class DataLoader:
     def get_batch(self, batch_idx: int) -> Dict[str, torch.Tensor]:
         """
         Get a specific batch by index.
-        
+
         Args:
             batch_idx: Index of the batch to retrieve.
-            
+
         Returns:
             Batch dictionary.
         """
         if batch_idx >= len(self):
             raise IndexError(f"Batch index {batch_idx} out of range")
-        
+
         # Get the batch
         if self.dataloader is None:
             raise RuntimeError("DataLoader is empty")
@@ -243,16 +258,16 @@ class DataLoader:
     def get_sample(self, sample_idx: int) -> Dict[str, torch.Tensor]:
         """
         Get a single sample by index.
-        
+
         Args:
             sample_idx: Index of the sample to retrieve.
-            
+
         Returns:
             Sample dictionary.
         """
         if sample_idx >= len(self.dataset):
             raise IndexError(f"Sample index {sample_idx} out of range")
-        
+
         sample = self.dataset[sample_idx]
         # Move to device
         sample = {k: v.to(self.device) for k, v in sample.items()}
@@ -261,19 +276,19 @@ class DataLoader:
     def get_stats(self) -> Dict[str, Any]:
         """
         Get statistics about the dataset.
-        
+
         Returns:
             Dictionary containing dataset statistics.
         """
         if not self.texts:
             return {"num_texts": 0}
-        
+
         # Calculate sequence lengths
         lengths = []
         for text in self.texts:
             encoded = self.tokenizer.encode(text, add_special_tokens=True)
             lengths.append(len(encoded))
-        
+
         return {
             "num_texts": len(self.texts),
             "num_batches": len(self),

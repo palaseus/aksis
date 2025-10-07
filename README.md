@@ -95,18 +95,18 @@ pytest --cov=src --cov-report=html
 
 The project enforces strict code quality standards:
 
-- **Formatting**: Black (line length: 88)
-- **Linting**: Flake8
-- **Type Checking**: MyPy
-- **Testing**: Pytest
+- **Formatting**: Black (line length: 79)
+- **Linting**: Flake8 (79 character line limit)
+- **Type Checking**: MyPy (strict mode)
+- **Testing**: Pytest (>80% coverage target for new modules)
 
 Run all quality checks:
 
 ```bash
 black src tests
 flake8 src tests
-mypy src
-pytest
+mypy src --ignore-missing-imports
+pytest --cov=src --cov-report=html
 ```
 
 ### Pre-commit Hooks
@@ -122,47 +122,125 @@ pre-commit run --all-files
 ### Training a Model
 
 ```bash
-# Train on default dataset (Shakespeare)
-aksis train --dataset shakespeare --epochs 10
+# Train on default dataset (WikiText2)
+python -m aksis.cli train-model --dataset wikitext2 --epochs 10
 
 # Train with custom parameters
-aksis train --dataset custom --batch-size 32 --learning-rate 1e-4
+python -m aksis.cli train-model --dataset shakespeare --batch-size 32 --learning-rate 5e-5 --mixed-precision
 ```
 
 ### Interactive Chat
 
 ```bash
-# Start chat interface
-aksis chat --model-path models/checkpoint.pth
+# Start interactive chat session
+python -m aksis.cli chat-with-model --checkpoint-path ./checkpoints/epoch_10.pt
 
-# Chat with specific context length
-aksis chat --model-path models/checkpoint.pth --context-length 512
+# Chat with specific sampler and parameters
+python -m aksis.cli chat-with-model \
+    --checkpoint-path ./checkpoints/epoch_10.pt \
+    --sampler temperature \
+    --temperature 0.8 \
+    --max-new-tokens 150 \
+    --system-prompt "You are a helpful coding assistant."
+
+# Chat with context saving
+python -m aksis.cli chat-with-model \
+    --checkpoint-path ./checkpoints/epoch_10.pt \
+    --context-file ./chat_history.json
+```
+
+### Text Generation
+
+```bash
+# Generate text from a prompt
+python -m aksis.cli generate-text \
+    --checkpoint-path ./checkpoints/epoch_10.pt \
+    --prompt "Once upon a time" \
+    --max-new-tokens 100 \
+    --sampler top-p \
+    --top-p 0.9
+
+# Generate with different sampling strategies
+python -m aksis.cli generate-text \
+    --checkpoint-path ./checkpoints/epoch_10.pt \
+    --prompt "The meaning of life is" \
+    --sampler greedy  # or top-k, top-p, temperature
+```
+
+### Benchmark Inference
+
+```bash
+# Benchmark inference performance
+python -m aksis.cli benchmark-inference \
+    --checkpoint-path ./checkpoints/epoch_10.pt \
+    --prompt "The quick brown fox" \
+    --max-new-tokens 50 \
+    --num-runs 10 \
+    --mixed-precision
+
+# Benchmark with CUDA
+python -m aksis.cli benchmark-inference \
+    --checkpoint-path ./checkpoints/epoch_10.pt \
+    --device cuda \
+    --mixed-precision
 ```
 
 ### Data Processing
 
 ```bash
 # Process and tokenize dataset
-aksis process-data --input data/raw/text.txt --output data/processed/
+python -m aksis.cli load-data --dataset wikitext2 --batch-size 4 --max-length 256
+
+# Tokenize custom text
+python -m aksis.cli tokenize --text "Hello, world! This is Aksis."
 ```
+
+## 🤖 Inference & Sampling
+
+Aksis supports multiple sampling strategies for text generation:
+
+### Sampling Methods
+
+- **Greedy Sampling**: Always selects the most probable token
+- **Beam Search**: Explores multiple hypotheses (width=4 by default)
+- **Top-K Sampling**: Samples from the top-k most probable tokens (k=50 by default)
+- **Top-P (Nucleus) Sampling**: Samples from the smallest set with cumulative probability > p (p=0.95 by default)
+- **Temperature Sampling**: Controls randomness via temperature scaling (temperature=0.7 by default)
+
+### Context Management
+
+The chatbot maintains conversation history with:
+
+- **Maximum Context Length**: 512 tokens by default
+- **FIFO Truncation**: Automatically removes oldest messages when context exceeds limit
+- **Context Persistence**: Save and load conversation history to JSON
+- **Role-Based Formatting**: Supports user, assistant, and system messages
+
+### Performance Optimization
+
+- **Mixed Precision Inference**: Automatic mixed precision (AMP) with CUDA
+- **Device Detection**: Automatic GPU detection with CPU fallback
+- **Efficient Generation**: Token-by-token generation with early stopping
+- **KV Caching**: (planned) Cache key-value states for faster sequential decoding
 
 ## 📊 Model Architecture
 
-The model follows the standard transformer architecture:
+The model follows the decoder-only transformer architecture:
 
-- **Encoder-Decoder**: Based on "Attention Is All You Need"
+- **Decoder-Only**: GPT-style causal language modeling
 - **Multi-Head Attention**: 8 attention heads by default
 - **Positional Encoding**: Learned positional embeddings
 - **Layer Normalization**: Pre-norm architecture
-- **Feed-Forward**: 4x hidden dimension expansion
+- **Feed-Forward**: 4x hidden dimension expansion (2048 by default)
 
 ### Default Configuration
 
-- **Layers**: 6 encoder + 6 decoder layers
-- **Hidden Dimension**: 512
+- **Layers**: 6 decoder layers
+- **Hidden Dimension (d_model)**: 512
 - **Attention Heads**: 8
-- **Vocabulary Size**: 50,000 (configurable)
-- **Context Length**: 1024 tokens
+- **Feed-Forward Dimension (d_ff)**: 2048
+- **Vocabulary Size**: Dynamic (based on tokenizer)
+- **Maximum Sequence Length**: 512 tokens (configurable)
 
 ## 📈 Training
 
