@@ -2,10 +2,7 @@
 
 import pytest
 import torch
-from unittest.mock import Mock, patch, MagicMock
-from typing import List, Dict, Any
-import tempfile
-import json
+from unittest.mock import Mock
 
 from aksis.eval.dataset import ChatbotDataset
 
@@ -68,8 +65,8 @@ class TestChatbotDataset:
 
     def test_dataset_initialization_invalid_data(self) -> None:
         """Test dataset initialization with invalid data."""
-        # Current implementation logs warnings but doesn't raise errors for invalid data
-        # It treats the string as a list of characters
+        # Current implementation logs warnings but doesn't raise errors for
+        # invalid data. It treats the string as a list of characters
         dataset = ChatbotDataset(
             conversations="invalid_data",
             tokenizer=self.tokenizer,
@@ -80,7 +77,9 @@ class TestChatbotDataset:
 
     def test_dataset_initialization_empty_data(self) -> None:
         """Test dataset initialization with empty data."""
-        with pytest.raises(ValueError, match="Conversations list cannot be empty"):
+        with pytest.raises(
+            ValueError, match="Conversations list cannot be empty"
+        ):
             ChatbotDataset(
                 conversations=[],
                 tokenizer=self.tokenizer,
@@ -191,7 +190,9 @@ class TestChatbotDataset:
 
         # Attention mask should be 1 for real tokens, 0 for padding
         attention_mask = item["attention_mask"]
-        assert attention_mask.sum().item() == 5  # Only 5 real tokens (from mock)
+        assert (
+            attention_mask.sum().item() == 5
+        )  # Only 5 real tokens (from mock)
         assert attention_mask[5:].sum().item() == 0  # Rest should be padding
 
     def test_dataset_conversation_formatting(self) -> None:
@@ -350,11 +351,14 @@ class TestChatbotDataset:
         # Should create dataset but with no valid conversations
         assert len(dataset) == 0
 
-    # Note: collate_fn tests removed as the current implementation doesn't expose this method directly
+    # Note: collate_fn tests removed as the current implementation doesn't
+    # expose this method directly
 
-    # Note: from_file and save_to_file tests removed as these methods don't exist in current implementation
+    # Note: from_file and save_to_file tests removed as these methods
+    # don't exist in current implementation
 
-    # Note: train_test_split and train_val_test_split tests removed as these methods don't exist in current implementation
+    # Note: train_test_split and train_val_test_split tests removed as these
+    # methods don't exist in current implementation
 
     def test_dataset_cuda_compatibility(self) -> None:
         """Test CUDA compatibility."""
@@ -369,7 +373,8 @@ class TestChatbotDataset:
 
         item = cuda_dataset[0]
 
-        # Check that tensors are on CPU (current implementation doesn't support device parameter)
+        # Check that tensors are on CPU (current implementation doesn't
+        # support device parameter)
         assert item["input_ids"].device.type == "cpu"
         assert item["attention_mask"].device.type == "cpu"
 

@@ -278,7 +278,6 @@ def train_model(
     max_grad_norm: float,
 ) -> None:
     """Train the transformer model."""
-    import torch
     import os
     from aksis.train.dataset import (
         load_wikitext2,
@@ -395,7 +394,6 @@ def eval_model(
     device: Optional[str],
 ) -> None:
     """Evaluate the trained model."""
-    import torch
     from aksis.train.dataset import (
         load_wikitext2,
         load_shakespeare,
@@ -523,7 +521,6 @@ def save_model(checkpoint_path: str, output_path: str) -> None:
     """Save model from checkpoint."""
     import torch
     from aksis.model.transformer import TransformerDecoder
-    from aksis.data.tokenizer import Tokenizer
 
     logger.info(f"Loading checkpoint from {checkpoint_path}")
 
@@ -820,7 +817,7 @@ def chat_with_model(
                 continue
             elif user_input.lower() == "info":
                 info = chatbot.get_info()
-                click.echo(f"\nChatBot Info:")
+                click.echo("\nChatBot Info:")
                 click.echo(
                     f"  Messages: {info['context_manager']['num_messages']}"
                 )
@@ -1025,7 +1022,7 @@ def benchmark_inference(
     default=True,
     help="Use mixed precision evaluation.",
 )
-def eval_model(
+def eval_model_phase5(
     checkpoint: str,
     dataset: str,
     split: str,
@@ -1096,7 +1093,8 @@ def eval_model(
             for i in range(input_ids.size(0)):
                 # Decode input and target
                 input_text = tokenizer.decode(input_ids[i].tolist())
-                target_text = input_text  # For language modeling, target is same as input
+                # For language modeling, target is same as input
+                target_text = input_text
                 eval_data.append({"input": input_text, "target": target_text})
         else:
             for i in range(batch.size(0)):

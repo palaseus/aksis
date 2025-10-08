@@ -4,7 +4,6 @@ import pytest
 import torch
 import numpy as np
 from unittest.mock import Mock, patch
-from typing import List, Dict, Any
 
 from aksis.eval.evaluator import Evaluator
 from aksis.model.transformer import TransformerDecoder
@@ -286,7 +285,8 @@ class TestEvaluator:
             with patch("json.dump") as mock_json_dump:
                 self.evaluator.save_results(results, "test_results.json")
 
-                # Check that open was called with the correct arguments (Path object)
+                # Check that open was called with the correct arguments
+                # (Path object)
                 call_args = mock_open.call_args
                 assert str(call_args[0][0]) == "test_results.json"
                 assert call_args[0][1] == "w"
@@ -302,7 +302,7 @@ class TestEvaluator:
             "rouge-1": 0.85,
         }
 
-        with patch("builtins.open", Mock()) as mock_open:
+        with patch("builtins.open", Mock()):
             with patch("pandas.DataFrame.to_csv") as mock_to_csv:
                 self.evaluator.save_results(results, "test_results.csv")
 

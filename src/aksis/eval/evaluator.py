@@ -159,7 +159,7 @@ class Evaluator:
             return 0.0
 
         try:
-            from nltk.translate.bleu_score import (
+            from nltk.translate.bleu_score import (  # type: ignore
                 sentence_bleu,
                 SmoothingFunction,
             )
@@ -271,7 +271,7 @@ class Evaluator:
             return {"rouge-1": 0.0, "rouge-2": 0.0, "rouge-l": 0.0}
 
         try:
-            from rouge_score import rouge_scorer
+            from rouge_score import rouge_scorer  # type: ignore
         except ImportError:
             logger.warning(
                 "rouge-score not available, using simple ROUGE approximation"

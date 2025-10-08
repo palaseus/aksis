@@ -2,9 +2,7 @@
 
 import pytest
 import numpy as np
-import matplotlib.pyplot as plt
-from unittest.mock import Mock, patch, MagicMock
-from typing import List, Dict, Any
+from unittest.mock import patch
 import tempfile
 import os
 
@@ -154,9 +152,7 @@ class TestVisualizer:
             "rouge_1": [],
         }
 
-        with pytest.raises(
-            ValueError, match="No numeric metrics found"
-        ):
+        with pytest.raises(ValueError, match="No numeric metrics found"):
             self.visualizer.plot_evaluation_metrics(empty_data, "test.png")
 
     def test_plot_hyperparameter_comparison(self) -> None:
