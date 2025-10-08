@@ -116,7 +116,7 @@ class ChatBot:
             # Validate response
             if response is None:
                 raise RuntimeError("Generator returned None")
-            
+
             # Handle empty or whitespace-only responses
             if not response or not response.strip():
                 response = "I'm sorry, I couldn't generate a response. Please try again."

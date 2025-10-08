@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 
 class BaseSampler:
     """Base class for all samplers."""
-    
+
     def sample(self, logits: torch.Tensor) -> torch.Tensor:
         """Sample tokens from logits. Must be implemented by subclasses."""
         raise NotImplementedError

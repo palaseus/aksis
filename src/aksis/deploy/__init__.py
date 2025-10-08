@@ -8,7 +8,7 @@ from .scaler import DistributedTrainer, ScalingConfig, ScalingError
 
 __all__ = [
     "DockerManager",
-    "DockerConfig", 
+    "DockerConfig",
     "PerformanceMonitor",
     "MonitoringConfig",
     "MonitoringError",

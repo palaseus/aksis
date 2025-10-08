@@ -58,7 +58,9 @@ def load_wikitext2(
     )
 
     # Tokenize the datasets
-    def tokenize_function(examples: Dict[str, List[str]]) -> Dict[str, List[List[int]]]:
+    def tokenize_function(
+        examples: Dict[str, List[str]]
+    ) -> Dict[str, List[List[int]]]:
         """Tokenize a batch of examples."""
         # Join all text in the batch
         texts = examples["text"]
@@ -161,7 +163,9 @@ def load_shakespeare(
     )
 
     # Tokenize the datasets
-    def tokenize_function(examples: Dict[str, List[str]]) -> Dict[str, List[List[int]]]:
+    def tokenize_function(
+        examples: Dict[str, List[str]]
+    ) -> Dict[str, List[List[int]]]:
         """Tokenize a batch of examples."""
         # Get the text from the 'text' column
         texts = examples["text"]
@@ -299,11 +303,11 @@ def collate_fn(batch: List[Dict[str, Any]]) -> Dict[str, torch.Tensor]:
     batched = {}
     for key in keys:
         values = [sample[key] for sample in batch]
-        
+
         # Skip non-tensor fields (like 'text')
         if not all(isinstance(v, (list, torch.Tensor)) for v in values):
             continue
-            
+
         # Convert lists to tensors if needed
         tensors = []
         for value in values:
@@ -461,56 +465,57 @@ def load_shakespeare(
         Tuple of (train_dataset, val_dataset, test_dataset).
     """
     logger.info("Loading Shakespeare dataset...")
-    
+
     # Import the Shakespeare dataset loader
     import sys
     from pathlib import Path
+
     sys.path.append(str(Path(__file__).parent.parent.parent))
     from shakespeare_dataset import load_shakespeare_dataset
-    
+
     # Load the dataset
     train_texts, val_texts, test_texts = load_shakespeare_dataset(
-        tokenizer=tokenizer,
-        max_length=max_length
+        tokenizer=tokenizer, max_length=max_length
     )
-    
+
     logger.info(f"Loaded {len(train_texts)} training samples")
     logger.info(f"Loaded {len(val_texts)} validation samples")
     logger.info(f"Loaded {len(test_texts)} test samples")
-    
+
     # Build vocabulary from training data
     logger.info("Building vocabulary...")
     tokenizer.build_vocab(train_texts)
-    logger.info(f"Vocabulary built with {tokenizer.vocab_size_with_special} tokens")
-    
+    logger.info(
+        f"Vocabulary built with {tokenizer.vocab_size_with_special} tokens"
+    )
+
     # Tokenize the datasets
     def tokenize_texts(texts: List[str]) -> List[Dict[str, Any]]:
         """Tokenize a list of texts."""
         tokenized = []
         for text in texts:
             try:
-                input_ids = tokenizer.encode(text, add_special_tokens=True, max_length=max_length)
+                input_ids = tokenizer.encode(
+                    text, add_special_tokens=True, max_length=max_length
+                )
                 if len(input_ids) > 1:  # Only include non-empty sequences
-                    tokenized.append({
-                        "input_ids": input_ids,
-                        "text": text
-                    })
+                    tokenized.append({"input_ids": input_ids, "text": text})
             except Exception as e:
                 logger.warning(f"Failed to tokenize text: {e}")
                 continue
         return tokenized
-    
+
     train_tokenized = tokenize_texts(train_texts)
     val_tokenized = tokenize_texts(val_texts)
     test_tokenized = tokenize_texts(test_texts)
-    
+
     logger.info(f"After tokenization: {len(train_tokenized)} training samples")
     logger.info(f"After tokenization: {len(val_tokenized)} validation samples")
     logger.info(f"After tokenization: {len(test_tokenized)} test samples")
-    
+
     # Convert to HuggingFace datasets
     train_dataset = Dataset.from_list(train_tokenized)
     val_dataset = Dataset.from_list(val_tokenized)
     test_dataset = Dataset.from_list(test_tokenized)
-    
+
     return train_dataset, val_dataset, test_dataset

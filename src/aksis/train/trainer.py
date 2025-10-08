@@ -258,7 +258,7 @@ class Trainer:
 
         # Move batch to device
         input_ids = batch["input_ids"].to(self.device)
-        
+
         # Handle attention_mask if present
         if "attention_mask" in batch:
             attention_mask = batch["attention_mask"].to(self.device)
@@ -343,7 +343,7 @@ class Trainer:
         """
         # Move batch to device
         input_ids = batch["input_ids"].to(self.device)
-        
+
         # Handle attention_mask if present
         if "attention_mask" in batch:
             attention_mask = batch["attention_mask"].to(self.device)

@@ -217,7 +217,9 @@ class TestVisualizer:
         with pytest.raises(
             ValueError, match="All arrays must have the same length"
         ):
-            self.visualizer.plot_metric_comparison(invalid_data, "loss", "test.png")
+            self.visualizer.plot_metric_comparison(
+                invalid_data, "loss", "test.png"
+            )
 
     def test_create_summary_plot(self) -> None:
         """Test creating summary plot with multiple subplots."""

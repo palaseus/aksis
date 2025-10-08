@@ -174,7 +174,9 @@ def create_scheduler(
         )
     elif scheduler_type.lower() == "cosine_with_warmup":
         if total_steps is None:
-            raise ValueError("total_steps must be provided for cosine_with_warmup")
+            raise ValueError(
+                "total_steps must be provided for cosine_with_warmup"
+            )
         scheduler = optim.lr_scheduler.CosineAnnealingLR(
             optimizer, T_max=total_steps, eta_min=eta_min, **kwargs
         )

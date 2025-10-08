@@ -484,20 +484,20 @@ def eval_model(
 
             # Forward pass
             outputs = trainer.model(input_ids, attention_mask=attention_mask)
-            logits = outputs.logits if hasattr(outputs, 'logits') else outputs
+            logits = outputs.logits if hasattr(outputs, "logits") else outputs
 
             # Calculate loss
             shift_logits = logits[..., :-1, :].contiguous()
             shift_labels = input_ids[..., 1:].contiguous()
             loss = trainer.criterion(
                 shift_logits.view(-1, shift_logits.size(-1)),
-                shift_labels.view(-1)
+                shift_labels.view(-1),
             )
 
             total_loss += loss.item() * input_ids.size(0)
             total_tokens += input_ids.size(0)
 
-    val_loss = total_loss / total_tokens if total_tokens > 0 else float('inf')
+    val_loss = total_loss / total_tokens if total_tokens > 0 else float("inf")
     val_perplexity = torch.exp(torch.tensor(val_loss)).item()
 
     logger.info(
@@ -654,12 +654,15 @@ def generate_text(
 
     # Load tokenizer and build vocabulary to match training
     tokenizer = Tokenizer(vocab_size=10000)
-    
+
     # Load WikiText-2 dataset to build the same vocabulary used in training
     from aksis.train.dataset import load_wikitext2
+
     try:
         train_dataset, _, _ = load_wikitext2(tokenizer, max_length=512)
-        logger.info(f"Vocabulary built with {tokenizer.vocab_size_with_special} tokens")
+        logger.info(
+            f"Vocabulary built with {tokenizer.vocab_size_with_special} tokens"
+        )
     except Exception as e:
         logger.warning(f"Failed to load WikiText-2 for vocabulary: {e}")
         # Fallback to sample texts
@@ -683,6 +686,7 @@ def generate_text(
 
     # Create sampler
     from aksis.inference.sampler import BaseSampler
+
     sampler_obj: BaseSampler
     if sampler == "greedy":
         sampler_obj = GreedySampler()
@@ -796,12 +800,15 @@ def chat_with_model(
 
     # Load tokenizer and build vocabulary to match training
     tokenizer = Tokenizer(vocab_size=10000)
-    
+
     # Load WikiText-2 dataset to build the same vocabulary used in training
     from aksis.train.dataset import load_wikitext2
+
     try:
         train_dataset, _, _ = load_wikitext2(tokenizer, max_length=512)
-        logger.info(f"Vocabulary built with {tokenizer.vocab_size_with_special} tokens")
+        logger.info(
+            f"Vocabulary built with {tokenizer.vocab_size_with_special} tokens"
+        )
     except Exception as e:
         logger.warning(f"Failed to load WikiText-2 for vocabulary: {e}")
         # Fallback to sample texts
@@ -825,6 +832,7 @@ def chat_with_model(
 
     # Create sampler
     from aksis.inference.sampler import BaseSampler
+
     sampler_obj: BaseSampler
     if sampler == "greedy":
         sampler_obj = GreedySampler()
@@ -1016,6 +1024,7 @@ def benchmark_inference(
 
     # Create sampler
     from aksis.inference.sampler import BaseSampler
+
     sampler_obj: BaseSampler
     if sampler == "greedy":
         sampler_obj = GreedySampler()
@@ -1151,6 +1160,7 @@ def eval_model_phase5(
 
     # Load dataset
     from datasets import load_dataset
+
     dataset_obj = load_dataset(dataset, split=split)
     texts = [item["text"] for item in dataset_obj]
     dataloader = DataLoader(
@@ -1319,6 +1329,7 @@ def fine_tune_model(
     try:
         # Load dataset
         from datasets import load_dataset
+
         dataset_obj = load_dataset(dataset, split="train")
         # Limit to 100 samples for demo
         texts = [item["text"] for item in dataset_obj[:100]]
@@ -1336,7 +1347,9 @@ def fine_tune_model(
 
         # Use the dataset directly for fine-tuning
         train_dataset = chatbot_dataset
-        val_dataset = chatbot_dataset  # Use same dataset for validation in demo
+        val_dataset = (
+            chatbot_dataset  # Use same dataset for validation in demo
+        )
         # test_dataset = None  # Not used
 
         # Use the datasets directly as they are already DataLoaders

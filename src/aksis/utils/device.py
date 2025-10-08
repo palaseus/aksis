@@ -24,7 +24,9 @@ def get_device(device: Optional[str] = None) -> torch.device:
     if device is None:
         if torch.cuda.is_available():
             device = "cuda"
-            logger.info(f"CUDA available, using GPU: {torch.cuda.get_device_name()}")
+            logger.info(
+                f"CUDA available, using GPU: {torch.cuda.get_device_name()}"
+            )
         else:
             device = "cpu"
             logger.info("CUDA not available, using CPU")
@@ -67,19 +69,21 @@ def get_gpu_memory_info(device: torch.device) -> Dict[str, Any]:
     """
     if not torch.cuda.is_available() or device.type != "cuda":
         return {"error": "CUDA not available or not a CUDA device"}
-    
+
     try:
         memory_allocated = torch.cuda.memory_allocated(device)
         memory_reserved = torch.cuda.memory_reserved(device)
         memory_total = torch.cuda.get_device_properties(device).total_memory
-        
+
         return {
             "gpu_memory_allocated": memory_allocated,
             "gpu_memory_reserved": memory_reserved,
             "gpu_memory_total": memory_total,
             "gpu_memory_free": memory_total - memory_reserved,
             "gpu_memory_used": memory_allocated,
-            "gpu_memory_utilization": (memory_allocated / memory_total) * 100 if memory_total > 0 else 0,
+            "gpu_memory_utilization": (memory_allocated / memory_total) * 100
+            if memory_total > 0
+            else 0,
         }
     except Exception as e:
         logger.error(f"Error getting GPU memory info: {e}")
@@ -95,9 +99,10 @@ def get_system_memory_info() -> Dict[str, Any]:
     """
     try:
         import psutil
+
         memory = psutil.virtual_memory()
         swap = psutil.swap_memory()
-        
+
         return {
             "system_memory_total": memory.total,
             "system_memory_available": memory.available,

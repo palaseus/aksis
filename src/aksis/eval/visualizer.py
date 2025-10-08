@@ -91,13 +91,21 @@ class Visualizer:
             val_losses = history.get("val_loss", [])
             train_perplexities = history.get("train_perplexity", [])
             val_perplexities = history.get("val_perplexity", [])
-            
+
             # Validate required keys
-            required_keys = ["epochs", "train_loss", "val_loss", "train_perplexity", "val_perplexity"]
+            required_keys = [
+                "epochs",
+                "train_loss",
+                "val_loss",
+                "train_perplexity",
+                "val_perplexity",
+            ]
             missing_keys = [key for key in required_keys if key not in history]
             if missing_keys:
-                raise ValueError(f"Missing required keys in training data: {missing_keys}")
-                
+                raise ValueError(
+                    f"Missing required keys in training data: {missing_keys}"
+                )
+
             if not epochs:
                 raise ValueError("Training data cannot be empty")
         else:
@@ -105,22 +113,28 @@ class Visualizer:
             epochs = [h["epoch"] for h in history]
             train_losses = [h.get("train_loss", 0) for h in history]
             val_losses = [h.get("val_loss", None) for h in history]
-            train_perplexities = [h.get("train_perplexity", 0) for h in history]
+            train_perplexities = [
+                h.get("train_perplexity", 0) for h in history
+            ]
             val_perplexities = [h.get("val_perplexity", None) for h in history]
 
         # Set style if provided
         if style:
             plt.style.use(style)
-            
+
         # Use custom figure size if provided
         plot_figsize = figsize if figsize else self.figsize
-        
+
         # Create figure with subplots
-        fig, (ax1, ax2) = plt.subplots(2, 1, figsize=plot_figsize, sharex=True, dpi=dpi)
+        fig, (ax1, ax2) = plt.subplots(
+            2, 1, figsize=plot_figsize, sharex=True, dpi=dpi
+        )
 
         # Set colors if provided
         if isinstance(colors, dict):
-            train_color = colors.get("train_loss", colors.get("train_perplexity"))
+            train_color = colors.get(
+                "train_loss", colors.get("train_perplexity")
+            )
             val_color = colors.get("val_loss", colors.get("val_perplexity"))
         elif isinstance(colors, list):
             train_color = colors[0] if colors and len(colors) > 0 else None
@@ -128,10 +142,15 @@ class Visualizer:
         else:
             train_color = None
             val_color = None
-        
+
         # Plot loss
         ax1.plot(
-            epochs, train_losses, label="Train Loss", marker="o", linewidth=2, color=train_color
+            epochs,
+            train_losses,
+            label="Train Loss",
+            marker="o",
+            linewidth=2,
+            color=train_color,
         )
         if any(v is not None for v in val_losses):
             val_epochs = [
@@ -245,7 +264,8 @@ class Visualizer:
         else:
             # Single value format
             numeric_metrics = {
-                k: v for k, v in metrics.items() 
+                k: v
+                for k, v in metrics.items()
                 if isinstance(v, (int, float)) and k != "checkpoints"
             }
         if not numeric_metrics:
@@ -267,7 +287,7 @@ class Visualizer:
             edgecolor="black",
             linewidth=1,
         )
-        
+
         # Set x-axis labels
         ax.set_xticks(x_pos)
         ax.set_xticklabels(metric_names)
@@ -343,20 +363,28 @@ class Visualizer:
             # Dictionary format: {"epochs": [1,2,3], "baseline_loss": [1,2,3], ...}
             if "epochs" in results:
                 # Look for metrics that contain the metric_name
-                matching_metrics = [k for k in results.keys() if metric_name in k and k != "epochs"]
+                matching_metrics = [
+                    k
+                    for k in results.keys()
+                    if metric_name in k and k != "epochs"
+                ]
                 if matching_metrics:
                     # Validate all matching metrics have the same length as epochs
                     epochs_length = len(results["epochs"])
                     for metric_key in matching_metrics:
                         if len(results[metric_key]) != epochs_length:
-                            raise ValueError("All arrays must have the same length")
-                    
+                            raise ValueError(
+                                "All arrays must have the same length"
+                            )
+
                     # Use the first matching metric
                     metric_key = matching_metrics[0]
                     labels = [f"Epoch {epoch}" for epoch in results["epochs"]]
                     values = results[metric_key]
                 else:
-                    raise ValueError(f"Metric '{metric_name}' not found in results")
+                    raise ValueError(
+                        f"Metric '{metric_name}' not found in results"
+                    )
             else:
                 raise ValueError("No epochs found in results")
         else:
@@ -462,11 +490,11 @@ class Visualizer:
             scores_matrix = search_results["scores"]
             if not learning_rates or not scores_matrix:
                 raise ValueError("No search results found")
-            
+
             # Validate dimensions
             if len(learning_rates) != len(scores_matrix):
                 raise ValueError("Data dimensions do not match")
-            
+
             # Flatten the data for plotting
             trials = []
             scores = []
@@ -642,30 +670,34 @@ class Visualizer:
         # Handle save_path as alternative to output_path
         if save_path is not None:
             output_path = save_path
-            
+
         # Convert training_data to training_history format if needed
         if training_data is not None and training_history is None:
             training_history = []
             for i in range(len(training_data.get("epochs", []))):
-                training_history.append({
-                    "epoch": training_data["epochs"][i],
-                    "train_loss": training_data["train_loss"][i],
-                    "val_loss": training_data["val_loss"][i],
-                    "train_perplexity": training_data["train_perplexity"][i],
-                    "val_perplexity": training_data["val_perplexity"][i],
-                })
-        
+                training_history.append(
+                    {
+                        "epoch": training_data["epochs"][i],
+                        "train_loss": training_data["train_loss"][i],
+                        "val_loss": training_data["val_loss"][i],
+                        "train_perplexity": training_data["train_perplexity"][
+                            i
+                        ],
+                        "val_perplexity": training_data["val_perplexity"][i],
+                    }
+                )
+
         # Convert evaluation_data to evaluation_results format if needed
         if evaluation_data is not None and evaluation_results is None:
             evaluation_results = {}
             for key, values in evaluation_data.items():
                 if values:  # Take last value if it's a list
-                    evaluation_results[key] = values[-1] if isinstance(values, list) else values
-        
+                    evaluation_results[key] = (
+                        values[-1] if isinstance(values, list) else values
+                    )
+
         if not evaluation_results and not training_history:
-            raise ValueError(
-                "At least one dataset must be provided"
-            )
+            raise ValueError("At least one dataset must be provided")
 
         if output_path is None:
             output_path = self.output_dir / "summary_report.png"
