@@ -201,7 +201,7 @@ class TestVisualizer:
             output_path = os.path.join(temp_dir, "loss_comparison.png")
 
             self.visualizer.plot_metric_comparison(
-                loss_data, save_path=output_path
+                loss_data, "loss", save_path=output_path
             )
 
             assert os.path.exists(output_path)
@@ -217,7 +217,7 @@ class TestVisualizer:
         with pytest.raises(
             ValueError, match="All arrays must have the same length"
         ):
-            self.visualizer.plot_metric_comparison(invalid_data, "test.png")
+            self.visualizer.plot_metric_comparison(invalid_data, "loss", "test.png")
 
     def test_create_summary_plot(self) -> None:
         """Test creating summary plot with multiple subplots."""

@@ -2,6 +2,7 @@
 
 import click
 import os
+import torch
 from typing import Optional
 
 from aksis.utils.logging import setup_logging, get_logger
@@ -339,6 +340,7 @@ def train_model(
         train_loader=train_loader,
         val_loader=val_loader,
         checkpoint_dir=checkpoint_dir,
+        device=device,
         epochs=epochs,
         lr=learning_rate,
         gradient_accumulation_steps=gradient_accumulation_steps,
@@ -467,7 +469,36 @@ def eval_model(
 
     # Evaluate model
     logger.info("Starting evaluation...")
-    val_loss, val_perplexity = trainer.evaluate()
+    # Evaluate using the validation loader
+    trainer.model.eval()
+    total_loss = 0.0
+    total_tokens = 0
+
+    with torch.no_grad():
+        for batch in trainer.val_loader:
+            # Move batch to device
+            input_ids = batch["input_ids"].to(trainer.device)
+            attention_mask = batch.get("attention_mask", None)
+            if attention_mask is not None:
+                attention_mask = attention_mask.to(trainer.device)
+
+            # Forward pass
+            outputs = trainer.model(input_ids, attention_mask=attention_mask)
+            logits = outputs.logits if hasattr(outputs, 'logits') else outputs
+
+            # Calculate loss
+            shift_logits = logits[..., :-1, :].contiguous()
+            shift_labels = input_ids[..., 1:].contiguous()
+            loss = trainer.criterion(
+                shift_logits.view(-1, shift_logits.size(-1)),
+                shift_labels.view(-1)
+            )
+
+            total_loss += loss.item() * input_ids.size(0)
+            total_tokens += input_ids.size(0)
+
+    val_loss = total_loss / total_tokens if total_tokens > 0 else float('inf')
+    val_perplexity = torch.exp(torch.tensor(val_loss)).item()
 
     logger.info(
         f"Evaluation completed - Loss: {val_loss:.4f}, Perplexity: {val_perplexity:.4f}"
@@ -621,18 +652,38 @@ def generate_text(
     # Get device
     device_obj = get_device(device)
 
-    # Load tokenizer
-    tokenizer = Tokenizer()
+    # Load tokenizer and build vocabulary to match training
+    tokenizer = Tokenizer(vocab_size=10000)
+    
+    # Load WikiText-2 dataset to build the same vocabulary used in training
+    from aksis.train.dataset import load_wikitext2
+    try:
+        train_dataset, _, _ = load_wikitext2(tokenizer, max_length=512)
+        logger.info(f"Vocabulary built with {tokenizer.vocab_size_with_special} tokens")
+    except Exception as e:
+        logger.warning(f"Failed to load WikiText-2 for vocabulary: {e}")
+        # Fallback to sample texts
+        sample_texts = [
+            "Hello world, this is a test sentence.",
+            "The quick brown fox jumps over the lazy dog.",
+            "Machine learning is a subset of artificial intelligence.",
+            "Natural language processing helps computers understand human language.",
+            "Deep learning uses neural networks with multiple layers.",
+        ]
+        tokenizer.build_vocab(sample_texts)
 
     # Load generator from checkpoint
     generator = Generator.load_from_checkpoint(
         checkpoint_path=checkpoint_path,
         tokenizer=tokenizer,
         device=device_obj,
+        max_length=256,  # Match the training max_length
         use_mixed_precision=mixed_precision,
     )
 
     # Create sampler
+    from aksis.inference.sampler import BaseSampler
+    sampler_obj: BaseSampler
     if sampler == "greedy":
         sampler_obj = GreedySampler()
     elif sampler == "top-k":
@@ -743,18 +794,38 @@ def chat_with_model(
     # Get device
     device_obj = get_device(device)
 
-    # Load tokenizer
-    tokenizer = Tokenizer()
+    # Load tokenizer and build vocabulary to match training
+    tokenizer = Tokenizer(vocab_size=10000)
+    
+    # Load WikiText-2 dataset to build the same vocabulary used in training
+    from aksis.train.dataset import load_wikitext2
+    try:
+        train_dataset, _, _ = load_wikitext2(tokenizer, max_length=512)
+        logger.info(f"Vocabulary built with {tokenizer.vocab_size_with_special} tokens")
+    except Exception as e:
+        logger.warning(f"Failed to load WikiText-2 for vocabulary: {e}")
+        # Fallback to sample texts
+        sample_texts = [
+            "Hello world, this is a test sentence.",
+            "The quick brown fox jumps over the lazy dog.",
+            "Machine learning is a subset of artificial intelligence.",
+            "Natural language processing helps computers understand human language.",
+            "Deep learning uses neural networks with multiple layers.",
+        ]
+        tokenizer.build_vocab(sample_texts)
 
     # Load generator from checkpoint
     generator = Generator.load_from_checkpoint(
         checkpoint_path=checkpoint_path,
         tokenizer=tokenizer,
         device=device_obj,
+        max_length=256,  # Match the training max_length
         use_mixed_precision=mixed_precision,
     )
 
     # Create sampler
+    from aksis.inference.sampler import BaseSampler
+    sampler_obj: BaseSampler
     if sampler == "greedy":
         sampler_obj = GreedySampler()
     elif sampler == "top-k":
@@ -939,10 +1010,13 @@ def benchmark_inference(
         checkpoint_path=checkpoint_path,
         tokenizer=tokenizer,
         device=device_obj,
+        max_length=256,  # Match the training max_length
         use_mixed_precision=mixed_precision,
     )
 
     # Create sampler
+    from aksis.inference.sampler import BaseSampler
+    sampler_obj: BaseSampler
     if sampler == "greedy":
         sampler_obj = GreedySampler()
     elif sampler == "top-k":
@@ -1052,7 +1126,7 @@ def eval_model_phase5(
         num_heads=checkpoint_data.get("num_heads", 8),
         num_layers=checkpoint_data.get("num_layers", 6),
         d_ff=checkpoint_data.get("d_ff", 2048),
-        max_length=checkpoint_data.get("max_length", 512),
+        max_len=checkpoint_data.get("max_length", 512),
         dropout=checkpoint_data.get("dropout", 0.1),
     )
 
@@ -1076,9 +1150,11 @@ def eval_model_phase5(
     )
 
     # Load dataset
+    from datasets import load_dataset
+    dataset_obj = load_dataset(dataset, split=split)
+    texts = [item["text"] for item in dataset_obj]
     dataloader = DataLoader(
-        dataset_name=dataset,
-        split=split,
+        texts=texts,
         tokenizer=tokenizer,
         batch_size=batch_size,
         max_length=max_length,
@@ -1207,7 +1283,7 @@ def fine_tune_model(
         num_heads=checkpoint_data.get("num_heads", 8),
         num_layers=checkpoint_data.get("num_layers", 6),
         d_ff=checkpoint_data.get("d_ff", 2048),
-        max_length=checkpoint_data.get("max_length", 512),
+        max_len=checkpoint_data.get("max_length", 512),
         dropout=checkpoint_data.get("dropout", 0.1),
     )
 
@@ -1235,38 +1311,37 @@ def fine_tune_model(
     )
 
     # Load chatbot dataset
-    data_loader = ChatbotDataLoader(
-        tokenizer=tokenizer,
-        max_length=max_length,
-    )
+    # data_loader = ChatbotDataLoader(
+    #     tokenizer=tokenizer,
+    #     max_length=max_length,
+    # )
 
     try:
         # Load dataset
-        chatbot_dataset = data_loader.load_dataset(
-            dataset_name=dataset,
-            split="train",
-            num_samples=100,  # Limit for demo
-        )
+        from datasets import load_dataset
+        dataset_obj = load_dataset(dataset, split="train")
+        # Limit to 100 samples for demo
+        texts = [item["text"] for item in dataset_obj[:100]]
+        from torch.utils.data import DataLoader as TorchDataLoader
+        from torch.utils.data import TensorDataset
 
-        # Split dataset
-        train_dataset, val_dataset, test_dataset = data_loader.split_dataset(
-            chatbot_dataset,
-            train_ratio=0.8,
-            val_ratio=0.1,
-            test_ratio=0.1,
-        )
-
-        # Create data loaders
-        train_loader = data_loader.create_dataloader(
-            train_dataset,
+        # Create a simple dataset for fine-tuning
+        input_ids = tokenizer.encode_batch(texts)
+        tensor_dataset = TensorDataset(torch.tensor(input_ids))
+        chatbot_dataset: TorchDataLoader = TorchDataLoader(
+            tensor_dataset,
             batch_size=batch_size,
             shuffle=True,
         )
-        val_loader = data_loader.create_dataloader(
-            val_dataset,
-            batch_size=batch_size,
-            shuffle=False,
-        )
+
+        # Use the dataset directly for fine-tuning
+        train_dataset = chatbot_dataset
+        val_dataset = chatbot_dataset  # Use same dataset for validation in demo
+        # test_dataset = None  # Not used
+
+        # Use the datasets directly as they are already DataLoaders
+        train_loader = train_dataset
+        val_loader = val_dataset
 
         # Fine-tune
         logger.info("Starting fine-tuning...")

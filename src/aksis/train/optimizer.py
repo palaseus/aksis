@@ -1,7 +1,7 @@
 """Optimizer and scheduler utilities for training."""
 
 import logging
-from typing import Tuple
+from typing import Tuple, Any
 
 import torch
 import torch.optim as optim
@@ -16,7 +16,7 @@ def create_optimizer(
     weight_decay: float = 0.01,
     betas: Tuple[float, float] = (0.9, 0.999),
     eps: float = 1e-8,
-    **kwargs,
+    **kwargs: Any,
 ) -> torch.optim.Optimizer:
     """
     Create an optimizer for the model.
@@ -54,6 +54,7 @@ def create_optimizer(
         raise ValueError("Model has no parameters to optimize")
 
     # Create optimizer based on type
+    optimizer: torch.optim.Optimizer
     if optimizer_type.lower() == "adamw":
         optimizer = optim.AdamW(
             params,
@@ -114,8 +115,10 @@ def create_scheduler(
     patience: int = 5,
     factor: float = 0.5,
     min_lr: float = 1e-7,
-    **kwargs,
-) -> torch.optim.lr_scheduler._LRScheduler:
+    warmup_steps: int = 0,
+    total_steps: int = None,
+    **kwargs: Any,
+) -> torch.optim.lr_scheduler.LRScheduler:
     """
     Create a learning rate scheduler.
 
@@ -160,12 +163,24 @@ def create_scheduler(
         raise ValueError("min_lr must be positive")
 
     # Create scheduler based on type
+    scheduler: torch.optim.lr_scheduler.LRScheduler
     if scheduler_type.lower() == "cosine":
         scheduler = optim.lr_scheduler.CosineAnnealingLR(
             optimizer, T_max=T_max, eta_min=eta_min, **kwargs
         )
         logger.info(
             f"Created CosineAnnealingLR scheduler with T_max={T_max}, "
+            f"eta_min={eta_min}"
+        )
+    elif scheduler_type.lower() == "cosine_with_warmup":
+        if total_steps is None:
+            raise ValueError("total_steps must be provided for cosine_with_warmup")
+        scheduler = optim.lr_scheduler.CosineAnnealingLR(
+            optimizer, T_max=total_steps, eta_min=eta_min, **kwargs
+        )
+        logger.info(
+            f"Created CosineAnnealingLR with warmup scheduler: "
+            f"total_steps={total_steps}, warmup_steps={warmup_steps}, "
             f"eta_min={eta_min}"
         )
 
@@ -214,7 +229,7 @@ def get_learning_rate(optimizer: torch.optim.Optimizer) -> float:
     Returns:
         Current learning rate.
     """
-    return optimizer.param_groups[0]["lr"]
+    return float(optimizer.param_groups[0]["lr"])
 
 
 def set_learning_rate(optimizer: torch.optim.Optimizer, lr: float) -> None:
@@ -278,8 +293,8 @@ def create_optimizer_with_scheduler(
     optimizer_type: str = "adamw",
     scheduler_type: str = "cosine",
     lr: float = 5e-5,
-    **kwargs,
-) -> Tuple[torch.optim.Optimizer, torch.optim.lr_scheduler._LRScheduler]:
+    **kwargs: Any,
+) -> Tuple[torch.optim.Optimizer, torch.optim.lr_scheduler.LRScheduler]:
     """
     Create an optimizer and scheduler together.
 

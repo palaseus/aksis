@@ -101,14 +101,19 @@ class Generator:
         # Create model (assuming standard transformer architecture)
         # This is a simplified version - in practice, you'd want to save
         # model configuration in the checkpoint
-        vocab_size = getattr(tokenizer, "vocab_size_with_special", 1000)
+        # Extract vocab_size from the embedding layer in the checkpoint
+        if "embedding.weight" in model_state_dict:
+            vocab_size = model_state_dict["embedding.weight"].shape[0]
+        else:
+            vocab_size = 10004  # fallback
+        
         model = TransformerDecoder(
             vocab_size=vocab_size,
             d_model=512,
             num_heads=8,
             num_layers=6,
             d_ff=2048,
-            max_len=max_length,
+            max_len=512,  # Use the same max_len as the checkpoint
             dropout=0.1,
         )
 
@@ -269,8 +274,11 @@ class Generator:
             # Decode generated tokens
             if generated_tokens:
                 generated_text = self.tokenizer.decode(generated_tokens)
+                logger.debug(f"Generated tokens: {generated_tokens[:10]}...")  # Show first 10 tokens
+                logger.debug(f"Decoded text: '{generated_text}'")
             else:
                 generated_text = ""
+                logger.warning("No tokens were generated")
 
             logger.debug(f"Generated {len(generated_tokens)} tokens")
             return generated_text
@@ -322,7 +330,15 @@ class Generator:
         """
         total_params = sum(p.numel() for p in self.model.parameters())
 
+        # Get model configuration
+        config = self.model.config if hasattr(self.model, 'config') else None
+        
         return {
+            "model_type": "Transformer",
+            "vocab_size": self.tokenizer.vocab_size_with_special if hasattr(self.tokenizer, 'vocab_size_with_special') else 10004,
+            "hidden_size": config.hidden_size if config and hasattr(config, 'hidden_size') else 512,
+            "num_layers": config.num_layers if config and hasattr(config, 'num_layers') else 6,
+            "num_heads": config.num_heads if config and hasattr(config, 'num_heads') else 8,
             "total_parameters": total_params,
             "device": str(self.device),
             "max_length": self.max_length,

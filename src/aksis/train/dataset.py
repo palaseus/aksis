@@ -1,13 +1,13 @@
 """Dataset integration for training."""
 
 import logging
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple, Any
 
 import torch
 from datasets import Dataset, load_dataset
 from torch.utils.data import DataLoader
 
-from aksis.data.dataloader import DataLoader as AksisDataLoader
+# from aksis.data.dataloader import DataLoader as AksisDataLoader
 from aksis.data.tokenizer import Tokenizer
 
 logger = logging.getLogger(__name__)
@@ -58,7 +58,7 @@ def load_wikitext2(
     )
 
     # Tokenize the datasets
-    def tokenize_function(examples):
+    def tokenize_function(examples: Dict[str, List[str]]) -> Dict[str, List[List[int]]]:
         """Tokenize a batch of examples."""
         # Join all text in the batch
         texts = examples["text"]
@@ -161,7 +161,7 @@ def load_shakespeare(
     )
 
     # Tokenize the datasets
-    def tokenize_function(examples):
+    def tokenize_function(examples: Dict[str, List[str]]) -> Dict[str, List[List[int]]]:
         """Tokenize a batch of examples."""
         # Get the text from the 'text' column
         texts = examples["text"]
@@ -282,7 +282,7 @@ def create_dataloaders(
     return train_loader, val_loader, test_loader
 
 
-def collate_fn(batch: List[Dict[str, any]]) -> Dict[str, torch.Tensor]:
+def collate_fn(batch: List[Dict[str, Any]]) -> Dict[str, torch.Tensor]:
     """
     Collate function for DataLoader.
 
@@ -299,6 +299,11 @@ def collate_fn(batch: List[Dict[str, any]]) -> Dict[str, torch.Tensor]:
     batched = {}
     for key in keys:
         values = [sample[key] for sample in batch]
+        
+        # Skip non-tensor fields (like 'text')
+        if not all(isinstance(v, (list, torch.Tensor)) for v in values):
+            continue
+            
         # Convert lists to tensors if needed
         tensors = []
         for value in values:
@@ -343,7 +348,7 @@ def create_aksis_dataloaders(
     batch_size: int = 32,
     num_workers: int = 4,
     pin_memory: bool = True,
-) -> Tuple[AksisDataLoader, AksisDataLoader, Optional[AksisDataLoader]]:
+) -> Tuple[DataLoader, DataLoader, Optional[DataLoader]]:
     """
     Create Aksis DataLoaders from datasets.
 
@@ -361,30 +366,33 @@ def create_aksis_dataloaders(
     logger.info(f"Creating Aksis DataLoaders with batch_size={batch_size}")
 
     # Create DataLoaders
-    train_loader = AksisDataLoader(
+    train_loader = DataLoader(
         train_dataset,
         batch_size=batch_size,
         shuffle=True,
         num_workers=num_workers,
         pin_memory=pin_memory,
+        collate_fn=collate_fn,
     )
 
-    val_loader = AksisDataLoader(
+    val_loader = DataLoader(
         val_dataset,
         batch_size=batch_size,
         shuffle=False,
         num_workers=num_workers,
         pin_memory=pin_memory,
+        collate_fn=collate_fn,
     )
 
     test_loader = None
     if test_dataset is not None:
-        test_loader = AksisDataLoader(
+        test_loader = DataLoader(
             test_dataset,
             batch_size=batch_size,
             shuffle=False,
             num_workers=num_workers,
             pin_memory=pin_memory,
+            collate_fn=collate_fn,
         )
 
     logger.info(
@@ -396,7 +404,7 @@ def create_aksis_dataloaders(
     return train_loader, val_loader, test_loader
 
 
-def get_dataset_info(dataset: Dataset) -> Dict[str, any]:
+def get_dataset_info(dataset: Dataset) -> Dict[str, Any]:
     """
     Get information about a dataset.
 
@@ -436,3 +444,73 @@ def get_dataset_info(dataset: Dataset) -> Dict[str, any]:
         "max_length": max(lengths),
         "min_length": min(lengths),
     }
+
+
+def load_shakespeare(
+    tokenizer: Tokenizer,
+    max_length: int = 512,
+) -> Tuple[Dataset, Dataset, Dataset]:
+    """
+    Load Shakespeare dataset and tokenize it.
+
+    Args:
+        tokenizer: Tokenizer to use for tokenization.
+        max_length: Maximum sequence length.
+
+    Returns:
+        Tuple of (train_dataset, val_dataset, test_dataset).
+    """
+    logger.info("Loading Shakespeare dataset...")
+    
+    # Import the Shakespeare dataset loader
+    import sys
+    from pathlib import Path
+    sys.path.append(str(Path(__file__).parent.parent.parent))
+    from shakespeare_dataset import load_shakespeare_dataset
+    
+    # Load the dataset
+    train_texts, val_texts, test_texts = load_shakespeare_dataset(
+        tokenizer=tokenizer,
+        max_length=max_length
+    )
+    
+    logger.info(f"Loaded {len(train_texts)} training samples")
+    logger.info(f"Loaded {len(val_texts)} validation samples")
+    logger.info(f"Loaded {len(test_texts)} test samples")
+    
+    # Build vocabulary from training data
+    logger.info("Building vocabulary...")
+    tokenizer.build_vocab(train_texts)
+    logger.info(f"Vocabulary built with {tokenizer.vocab_size_with_special} tokens")
+    
+    # Tokenize the datasets
+    def tokenize_texts(texts: List[str]) -> List[Dict[str, Any]]:
+        """Tokenize a list of texts."""
+        tokenized = []
+        for text in texts:
+            try:
+                input_ids = tokenizer.encode(text, add_special_tokens=True, max_length=max_length)
+                if len(input_ids) > 1:  # Only include non-empty sequences
+                    tokenized.append({
+                        "input_ids": input_ids,
+                        "text": text
+                    })
+            except Exception as e:
+                logger.warning(f"Failed to tokenize text: {e}")
+                continue
+        return tokenized
+    
+    train_tokenized = tokenize_texts(train_texts)
+    val_tokenized = tokenize_texts(val_texts)
+    test_tokenized = tokenize_texts(test_texts)
+    
+    logger.info(f"After tokenization: {len(train_tokenized)} training samples")
+    logger.info(f"After tokenization: {len(val_tokenized)} validation samples")
+    logger.info(f"After tokenization: {len(test_tokenized)} test samples")
+    
+    # Convert to HuggingFace datasets
+    train_dataset = Dataset.from_list(train_tokenized)
+    val_dataset = Dataset.from_list(val_tokenized)
+    test_dataset = Dataset.from_list(test_tokenized)
+    
+    return train_dataset, val_dataset, test_dataset

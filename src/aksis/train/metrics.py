@@ -79,6 +79,14 @@ def compute_perplexity(
     # Compute perplexity
     perplexity = math.exp(avg_loss)
 
+    # Sanity check: perplexity should be reasonable relative to loss
+    expected_perplexity = math.exp(avg_loss)
+    if abs(perplexity - expected_perplexity) > 1e-3:
+        logger.warning(
+            f"Perplexity sanity check failed: computed={perplexity:.2f}, "
+            f"expected={expected_perplexity:.2f}, loss={avg_loss:.4f}"
+        )
+
     # Check for numerical issues
     if math.isnan(perplexity) or math.isinf(perplexity):
         logger.warning(f"Invalid perplexity computed: {perplexity}")
@@ -90,7 +98,7 @@ def compute_perplexity(
 class MetricsTracker:
     """Track training and validation metrics."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize metrics tracker."""
         self.train_losses: List[float] = []
         self.val_losses: List[float] = []

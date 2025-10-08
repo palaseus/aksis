@@ -51,19 +51,31 @@ class Visualizer:
 
     def plot_loss_perplexity(
         self,
-        history: List[Dict[str, float]],
+        history: Union[List[Dict[str, float]], Dict[str, List[float]]],
         title: str = "Training Loss and Perplexity",
         save_path: Optional[Union[str, Path]] = None,
         show_plot: bool = False,
+        style: Optional[str] = None,
+        colors: Optional[List[str]] = None,
+        figsize: Optional[Tuple[int, int]] = None,
+        show_legend: bool = True,
+        show_grid: bool = True,
+        dpi: int = 100,
     ) -> Path:
         """
         Plot training loss and perplexity curves.
 
         Args:
-            history: List of dictionaries containing training metrics.
+            history: List of dictionaries or dictionary with lists containing training metrics.
             title: Title for the plot.
             save_path: Path to save the plot. If None, auto-generates.
             show_plot: Whether to display the plot.
+            style: Matplotlib style to use.
+            colors: List of colors for the plots.
+            figsize: Figure size as (width, height).
+            show_legend: Whether to show legend.
+            show_grid: Whether to show grid.
+            dpi: DPI for the saved plot.
 
         Returns:
             Path to the saved plot.
@@ -71,19 +83,55 @@ class Visualizer:
         if not history:
             raise ValueError("History cannot be empty")
 
-        # Extract data
-        epochs = [h["epoch"] for h in history]
-        train_losses = [h.get("train_loss", 0) for h in history]
-        val_losses = [h.get("val_loss", None) for h in history]
-        train_perplexities = [h.get("train_perplexity", 0) for h in history]
-        val_perplexities = [h.get("val_perplexity", None) for h in history]
+        # Handle both data formats
+        if isinstance(history, dict):
+            # Dictionary format: {"epochs": [1,2,3], "train_loss": [1,2,3], ...}
+            epochs = history.get("epochs", [])
+            train_losses = history.get("train_loss", [])
+            val_losses = history.get("val_loss", [])
+            train_perplexities = history.get("train_perplexity", [])
+            val_perplexities = history.get("val_perplexity", [])
+            
+            # Validate required keys
+            required_keys = ["epochs", "train_loss", "val_loss", "train_perplexity", "val_perplexity"]
+            missing_keys = [key for key in required_keys if key not in history]
+            if missing_keys:
+                raise ValueError(f"Missing required keys in training data: {missing_keys}")
+                
+            if not epochs:
+                raise ValueError("Training data cannot be empty")
+        else:
+            # List format: [{"epoch": 1, "train_loss": 1, ...}, ...]
+            epochs = [h["epoch"] for h in history]
+            train_losses = [h.get("train_loss", 0) for h in history]
+            val_losses = [h.get("val_loss", None) for h in history]
+            train_perplexities = [h.get("train_perplexity", 0) for h in history]
+            val_perplexities = [h.get("val_perplexity", None) for h in history]
 
+        # Set style if provided
+        if style:
+            plt.style.use(style)
+            
+        # Use custom figure size if provided
+        plot_figsize = figsize if figsize else self.figsize
+        
         # Create figure with subplots
-        fig, (ax1, ax2) = plt.subplots(2, 1, figsize=self.figsize, sharex=True)
+        fig, (ax1, ax2) = plt.subplots(2, 1, figsize=plot_figsize, sharex=True, dpi=dpi)
 
+        # Set colors if provided
+        if isinstance(colors, dict):
+            train_color = colors.get("train_loss", colors.get("train_perplexity"))
+            val_color = colors.get("val_loss", colors.get("val_perplexity"))
+        elif isinstance(colors, list):
+            train_color = colors[0] if colors and len(colors) > 0 else None
+            val_color = colors[1] if colors and len(colors) > 1 else None
+        else:
+            train_color = None
+            val_color = None
+        
         # Plot loss
         ax1.plot(
-            epochs, train_losses, label="Train Loss", marker="o", linewidth=2
+            epochs, train_losses, label="Train Loss", marker="o", linewidth=2, color=train_color
         )
         if any(v is not None for v in val_losses):
             val_epochs = [
@@ -96,12 +144,15 @@ class Visualizer:
                 label="Val Loss",
                 marker="s",
                 linewidth=2,
+                color=val_color,
             )
 
         ax1.set_ylabel("Loss")
         ax1.set_title("Training and Validation Loss")
-        ax1.legend()
-        ax1.grid(True, alpha=0.3)
+        if show_legend:
+            ax1.legend()
+        if show_grid:
+            ax1.grid(True, alpha=0.3)
 
         # Plot perplexity
         ax2.plot(
@@ -110,6 +161,7 @@ class Visualizer:
             label="Train Perplexity",
             marker="o",
             linewidth=2,
+            color=train_color,
         )
         if any(v is not None for v in val_perplexities):
             val_epochs = [
@@ -124,13 +176,16 @@ class Visualizer:
                 label="Val Perplexity",
                 marker="s",
                 linewidth=2,
+                color=val_color,
             )
 
         ax2.set_xlabel("Epoch")
         ax2.set_ylabel("Perplexity")
         ax2.set_title("Training and Validation Perplexity")
-        ax2.legend()
-        ax2.grid(True, alpha=0.3)
+        if show_legend:
+            ax2.legend()
+        if show_grid:
+            ax2.grid(True, alpha=0.3)
 
         # Set overall title
         fig.suptitle(title, fontsize=16, fontweight="bold")
@@ -156,7 +211,7 @@ class Visualizer:
 
     def plot_evaluation_metrics(
         self,
-        metrics: Dict[str, float],
+        metrics: Union[Dict[str, float], Dict[str, List[float]]],
         title: str = "Evaluation Metrics",
         save_path: Optional[Union[str, Path]] = None,
         show_plot: bool = False,
@@ -165,7 +220,7 @@ class Visualizer:
         Plot evaluation metrics as a bar chart.
 
         Args:
-            metrics: Dictionary containing evaluation metrics.
+            metrics: Dictionary containing evaluation metrics (single values or lists).
             title: Title for the plot.
             save_path: Path to save the plot. If None, auto-generates.
             show_plot: Whether to display the plot.
@@ -176,10 +231,23 @@ class Visualizer:
         if not metrics:
             raise ValueError("Metrics cannot be empty")
 
-        # Filter out non-numeric metrics
-        numeric_metrics = {
-            k: v for k, v in metrics.items() if isinstance(v, (int, float))
-        }
+        # Handle both single values and lists
+        if any(isinstance(v, list) for v in metrics.values()):
+            # List format - take the last values
+            numeric_metrics = {}
+            for k, v in metrics.items():
+                if k == "checkpoints":  # Skip non-numeric keys
+                    continue
+                if isinstance(v, list) and v:
+                    numeric_metrics[k] = v[-1]  # Take last value
+                elif isinstance(v, (int, float)):
+                    numeric_metrics[k] = v
+        else:
+            # Single value format
+            numeric_metrics = {
+                k: v for k, v in metrics.items() 
+                if isinstance(v, (int, float)) and k != "checkpoints"
+            }
         if not numeric_metrics:
             raise ValueError("No numeric metrics found")
 
@@ -190,14 +258,19 @@ class Visualizer:
         metric_names = list(numeric_metrics.keys())
         metric_values = list(numeric_metrics.values())
 
-        # Create bar plot
+        # Create bar plot with proper labels
+        x_pos = range(len(metric_names))
         bars = ax.bar(
-            metric_names,
+            x_pos,
             metric_values,
             alpha=0.7,
             edgecolor="black",
             linewidth=1,
         )
+        
+        # Set x-axis labels
+        ax.set_xticks(x_pos)
+        ax.set_xticklabels(metric_names)
 
         # Customize plot
         ax.set_title(title, fontsize=16, fontweight="bold")
@@ -241,7 +314,7 @@ class Visualizer:
 
     def plot_metric_comparison(
         self,
-        results: List[Dict[str, Any]],
+        results: Union[List[Dict[str, Any]], Dict[str, List[float]]],
         metric_name: str,
         title: Optional[str] = None,
         save_path: Optional[Union[str, Path]] = None,
@@ -251,7 +324,7 @@ class Visualizer:
         Plot comparison of a metric across different models/checkpoints.
 
         Args:
-            results: List of result dictionaries.
+            results: List of result dictionaries or dictionary with lists.
             metric_name: Name of the metric to compare.
             title: Title for the plot. If None, auto-generates.
             save_path: Path to save the plot. If None, auto-generates.
@@ -265,21 +338,43 @@ class Visualizer:
         if not metric_name:
             raise ValueError("Metric name cannot be empty")
 
-        # Extract data
-        labels: List[str] = []
-        values: List[float] = []
-        for result in results:
-            # Try to extract a meaningful label
-            if "checkpoint_path" in result:
-                label = Path(result["checkpoint_path"]).stem
-            elif "epoch" in result:
-                label = f"Epoch {result['epoch']}"
+        # Handle both data formats
+        if isinstance(results, dict):
+            # Dictionary format: {"epochs": [1,2,3], "baseline_loss": [1,2,3], ...}
+            if "epochs" in results:
+                # Look for metrics that contain the metric_name
+                matching_metrics = [k for k in results.keys() if metric_name in k and k != "epochs"]
+                if matching_metrics:
+                    # Validate all matching metrics have the same length as epochs
+                    epochs_length = len(results["epochs"])
+                    for metric_key in matching_metrics:
+                        if len(results[metric_key]) != epochs_length:
+                            raise ValueError("All arrays must have the same length")
+                    
+                    # Use the first matching metric
+                    metric_key = matching_metrics[0]
+                    labels = [f"Epoch {epoch}" for epoch in results["epochs"]]
+                    values = results[metric_key]
+                else:
+                    raise ValueError(f"Metric '{metric_name}' not found in results")
             else:
-                label = f"Model {len(labels) + 1}"
+                raise ValueError("No epochs found in results")
+        else:
+            # List format: [{"epoch": 1, "loss": 1, ...}, ...]
+            labels: List[str] = []
+            values: List[float] = []
+            for result in results:
+                # Try to extract a meaningful label
+                if "checkpoint_path" in result:
+                    label = Path(result["checkpoint_path"]).stem
+                elif "epoch" in result:
+                    label = f"Epoch {result['epoch']}"
+                else:
+                    label = f"Model {len(labels) + 1}"
 
-            if metric_name in result:
-                labels.append(label)
-                values.append(result[metric_name])
+                if metric_name in result:
+                    labels.append(label)
+                    values.append(result[metric_name])
 
         if not values:
             raise ValueError(f"Metric '{metric_name}' not found in results")
@@ -353,16 +448,36 @@ class Visualizer:
         Returns:
             Path to the saved plot.
         """
-        if not search_results or "all_results" not in search_results:
+        # Handle different data formats
+        if "all_results" in search_results:
+            # Original format
+            results = search_results["all_results"]
+            if not results:
+                raise ValueError("No search results found")
+            trials = [r["trial"] for r in results]
+            scores = [r["best_val_loss"] for r in results]
+        elif "learning_rates" in search_results and "scores" in search_results:
+            # New format with learning rates and scores
+            learning_rates = search_results["learning_rates"]
+            scores_matrix = search_results["scores"]
+            if not learning_rates or not scores_matrix:
+                raise ValueError("No search results found")
+            
+            # Validate dimensions
+            if len(learning_rates) != len(scores_matrix):
+                raise ValueError("Data dimensions do not match")
+            
+            # Flatten the data for plotting
+            trials = []
+            scores = []
+            for i, lr in enumerate(learning_rates):
+                if i >= len(scores_matrix):
+                    raise ValueError("Data dimensions do not match")
+                for j, score in enumerate(scores_matrix[i]):
+                    trials.append(f"LR={lr:.0e}, BS={j+1}")
+                    scores.append(score)
+        else:
             raise ValueError("Invalid search results format")
-
-        results = search_results["all_results"]
-        if not results:
-            raise ValueError("No search results found")
-
-        # Extract data
-        trials = [r["trial"] for r in results]
-        scores = [r["best_val_loss"] for r in results]
 
         # Create figure
         fig, ax = plt.subplots(figsize=self.figsize)
@@ -373,16 +488,29 @@ class Visualizer:
         )
 
         # Highlight best result
-        best_trial = min(results, key=lambda x: x["best_val_loss"])
-        ax.scatter(
-            best_trial["trial"],
-            best_trial["best_val_loss"],
-            color="red",
-            s=200,
-            edgecolors="black",
-            linewidth=2,
-            label="Best",
-        )
+        if "all_results" in search_results:
+            best_trial = min(results, key=lambda x: x["best_val_loss"])
+            ax.scatter(
+                best_trial["trial"],
+                best_trial["best_val_loss"],
+                color="red",
+                s=200,
+                edgecolors="black",
+                linewidth=2,
+                label="Best",
+            )
+        else:
+            # For new format, find best score
+            best_idx = scores.index(min(scores))
+            ax.scatter(
+                trials[best_idx],
+                scores[best_idx],
+                color="red",
+                s=200,
+                edgecolors="black",
+                linewidth=2,
+                label="Best",
+            )
 
         # Customize plot
         ax.set_title(title, fontsize=16, fontweight="bold")
@@ -490,9 +618,12 @@ class Visualizer:
 
     def create_summary_report(
         self,
-        evaluation_results: Dict[str, Any],
-        training_history: List[Dict[str, float]],
+        evaluation_results: Optional[Dict[str, Any]] = None,
+        training_history: Optional[List[Dict[str, float]]] = None,
+        training_data: Optional[Dict[str, List[float]]] = None,
+        evaluation_data: Optional[Dict[str, List[float]]] = None,
         output_path: Optional[Union[str, Path]] = None,
+        save_path: Optional[Union[str, Path]] = None,
     ) -> Path:
         """
         Create a comprehensive summary report with multiple plots.
@@ -500,15 +631,40 @@ class Visualizer:
         Args:
             evaluation_results: Dictionary containing evaluation results.
             training_history: List of dictionaries containing training metrics.
+            training_data: Dictionary with training data in list format.
+            evaluation_data: Dictionary with evaluation data in list format.
             output_path: Path to save the report. If None, auto-generates.
+            save_path: Alternative name for output_path.
 
         Returns:
             Path to the saved report.
         """
+        # Handle save_path as alternative to output_path
+        if save_path is not None:
+            output_path = save_path
+            
+        # Convert training_data to training_history format if needed
+        if training_data is not None and training_history is None:
+            training_history = []
+            for i in range(len(training_data.get("epochs", []))):
+                training_history.append({
+                    "epoch": training_data["epochs"][i],
+                    "train_loss": training_data["train_loss"][i],
+                    "val_loss": training_data["val_loss"][i],
+                    "train_perplexity": training_data["train_perplexity"][i],
+                    "val_perplexity": training_data["val_perplexity"][i],
+                })
+        
+        # Convert evaluation_data to evaluation_results format if needed
+        if evaluation_data is not None and evaluation_results is None:
+            evaluation_results = {}
+            for key, values in evaluation_data.items():
+                if values:  # Take last value if it's a list
+                    evaluation_results[key] = values[-1] if isinstance(values, list) else values
+        
         if not evaluation_results and not training_history:
             raise ValueError(
-                "At least one of evaluation_results or training_history "
-                "must be provided"
+                "At least one dataset must be provided"
             )
 
         if output_path is None:

@@ -183,11 +183,11 @@ class TestDataLoaderCreation:
         assert len(val_loader) == 1  # 1 sample / 1 batch_size = 1 batch
         assert len(test_loader) == 1  # 1 sample / 1 batch_size = 1 batch
 
-    @patch("aksis.train.dataset.AksisDataLoader")
-    def test_create_aksis_dataloaders(self, mock_aksis_dataloader):
+    @patch("aksis.train.dataset.DataLoader")
+    def test_create_aksis_dataloaders(self, mock_dataloader):
         """Test creating Aksis DataLoaders."""
-        mock_aksis_dataloader.return_value = Mock()
-        mock_aksis_dataloader.return_value.__len__ = Mock(return_value=1)
+        mock_dataloader.return_value = Mock()
+        mock_dataloader.return_value.__len__ = Mock(return_value=1)
 
         train_loader, val_loader, test_loader = create_aksis_dataloaders(
             self.train_dataset,
@@ -200,8 +200,8 @@ class TestDataLoaderCreation:
         assert val_loader is not None
         assert test_loader is not None
 
-        # Check that AksisDataLoader was called with correct parameters
-        assert mock_aksis_dataloader.call_count == 3
+        # Check that DataLoader was called with correct parameters
+        assert mock_dataloader.call_count == 3
 
     def test_collate_fn(self):
         """Test collate function."""

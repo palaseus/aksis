@@ -1,5 +1,6 @@
 """Training loop and trainer implementation."""
 
+import math
 import time
 import logging
 from typing import Dict, Any, Optional, Union, Tuple
@@ -30,14 +31,14 @@ class Trainer:
         checkpoint_dir: str,
         device: Optional[Union[str, torch.device]] = None,
         optimizer: Optional[torch.optim.Optimizer] = None,
-        scheduler: Optional[torch.optim.lr_scheduler._LRScheduler] = None,
+        scheduler: Optional[torch.optim.lr_scheduler.LRScheduler] = None,
         criterion: Optional[nn.Module] = None,
         epochs: int = 10,
         gradient_accumulation_steps: int = 1,
         max_grad_norm: float = 1.0,
         use_mixed_precision: bool = False,
-        **kwargs,
-    ):
+        **kwargs: Any,
+    ) -> None:
         """
         Initialize trainer.
 
@@ -69,7 +70,8 @@ class Trainer:
             raise ValueError("Max gradient norm must be positive")
 
         # Set device
-        self.device = get_device(device)
+        device_str = str(device) if device is not None else None
+        self.device = get_device(device_str)
         logger.info(f"Using device: {self.device}")
 
         # Move model to device
@@ -127,7 +129,7 @@ class Trainer:
 
         # Set up loss function
         if criterion is None:
-            self.criterion = nn.CrossEntropyLoss(ignore_index=-100)
+            self.criterion: nn.Module = nn.CrossEntropyLoss(ignore_index=-100)
         else:
             self.criterion = criterion
 
@@ -256,7 +258,13 @@ class Trainer:
 
         # Move batch to device
         input_ids = batch["input_ids"].to(self.device)
-        attention_mask = batch["attention_mask"].to(self.device)
+        
+        # Handle attention_mask if present
+        if "attention_mask" in batch:
+            attention_mask = batch["attention_mask"].to(self.device)
+        else:
+            # Create attention mask (all ones for non-padding tokens)
+            attention_mask = (input_ids != 0).float()
 
         # Create targets (shifted input_ids)
         targets = input_ids[:, 1:].contiguous()
@@ -316,10 +324,12 @@ class Trainer:
 
             self.optimizer.zero_grad()
 
-        # Compute perplexity
-        perplexity = compute_perplexity(logits, targets, attention_mask)
+        # Compute perplexity using the same loss that was used for training
+        # This ensures consistency between loss and perplexity
+        perplexity = math.exp(loss.item())
 
-        return loss.item() * self.gradient_accumulation_steps, perplexity
+        # Return the unscaled loss for consistency with perplexity calculation
+        return loss.item(), perplexity
 
     def _val_step(self, batch: Dict[str, torch.Tensor]) -> Tuple[float, float]:
         """
@@ -333,7 +343,13 @@ class Trainer:
         """
         # Move batch to device
         input_ids = batch["input_ids"].to(self.device)
-        attention_mask = batch["attention_mask"].to(self.device)
+        
+        # Handle attention_mask if present
+        if "attention_mask" in batch:
+            attention_mask = batch["attention_mask"].to(self.device)
+        else:
+            # Create attention mask (all ones for non-padding tokens)
+            attention_mask = (input_ids != 0).float()
 
         # Create targets (shifted input_ids)
         targets = input_ids[:, 1:].contiguous()
@@ -353,8 +369,9 @@ class Trainer:
                 logits.view(-1, logits.size(-1)), targets.view(-1)
             )
 
-        # Compute perplexity
-        perplexity = compute_perplexity(logits, targets, attention_mask)
+        # Compute perplexity using the same loss that was used for validation
+        # This ensures consistency between loss and perplexity
+        perplexity = math.exp(loss.item())
 
         return loss.item(), perplexity
 

@@ -42,7 +42,7 @@ class CheckpointManager:
         self,
         model: torch.nn.Module,
         optimizer: torch.optim.Optimizer,
-        scheduler: Optional[torch.optim.lr_scheduler._LRScheduler],
+        scheduler: Optional[torch.optim.lr_scheduler.LRScheduler],
         epoch: int,
         loss: float,
         metrics: Optional[Dict[str, float]] = None,
@@ -145,7 +145,7 @@ class CheckpointManager:
         checkpoint_path: str,
         model: Optional[torch.nn.Module] = None,
         optimizer: Optional[torch.optim.Optimizer] = None,
-        scheduler: Optional[torch.optim.lr_scheduler._LRScheduler] = None,
+        scheduler: Optional[torch.optim.lr_scheduler.LRScheduler] = None,
         map_location: Optional[Union[str, torch.device]] = None,
     ) -> Dict[str, Any]:
         """
@@ -204,7 +204,7 @@ class CheckpointManager:
             logger.error(f"Failed to load checkpoint: {e}")
             raise
 
-        return checkpoint
+        return checkpoint  # type: ignore
 
     def get_best_checkpoint_path(self) -> Optional[str]:
         """
@@ -320,6 +320,8 @@ class CheckpointManager:
         try:
             # Load only the metadata
             checkpoint = torch.load(checkpoint_path, map_location="cpu")
+            if not isinstance(checkpoint, dict):
+                raise ValueError("Invalid checkpoint format")
 
             info = {
                 "path": checkpoint_path,

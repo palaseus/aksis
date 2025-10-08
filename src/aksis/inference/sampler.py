@@ -8,7 +8,15 @@ from typing import Optional
 logger = logging.getLogger(__name__)
 
 
-class GreedySampler:
+class BaseSampler:
+    """Base class for all samplers."""
+    
+    def sample(self, logits: torch.Tensor) -> torch.Tensor:
+        """Sample tokens from logits. Must be implemented by subclasses."""
+        raise NotImplementedError
+
+
+class GreedySampler(BaseSampler):
     """Greedy sampling (always select the most likely token)."""
 
     def __init__(self) -> None:
@@ -37,7 +45,7 @@ class GreedySampler:
         return sampled
 
 
-class BeamSearchSampler:
+class BeamSearchSampler(BaseSampler):
     """Beam search sampling for better quality generation."""
 
     def __init__(self, beam_width: int = 4):
@@ -147,7 +155,7 @@ class BeamSearchSampler:
         return best_beams
 
 
-class TopKSampler:
+class TopKSampler(BaseSampler):
     """Top-k sampling (sample from the k most likely tokens)."""
 
     def __init__(self, k: int = 50):
@@ -198,7 +206,7 @@ class TopKSampler:
         return sampled_tokens
 
 
-class TopPSampler:
+class TopPSampler(BaseSampler):
     """Top-p (nucleus) sampling (sample from tokens with cumulative prob p)."""
 
     def __init__(self, p: float = 0.95):
@@ -270,7 +278,7 @@ class TopPSampler:
         return sampled_tokens
 
 
-class TemperatureSampler:
+class TemperatureSampler(BaseSampler):
     """Temperature sampling (control randomness with temperature parameter)."""
 
     def __init__(self, temperature: float = 0.7):
@@ -317,7 +325,7 @@ class TemperatureSampler:
         return sampled
 
 
-class CombinedSampler:
+class CombinedSampler(BaseSampler):
     """Combined sampling strategy (e.g., top-k + top-p + temperature)."""
 
     def __init__(
