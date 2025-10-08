@@ -1047,7 +1047,7 @@ def eval_model(
     # Load model and tokenizer
     device = get_device()
     checkpoint_data = torch.load(checkpoint, map_location=device)
-    
+
     # Create model
     model = TransformerDecoder(
         vocab_size=checkpoint_data.get("vocab_size", 10000),
@@ -1058,18 +1058,18 @@ def eval_model(
         max_length=checkpoint_data.get("max_length", 512),
         dropout=checkpoint_data.get("dropout", 0.1),
     )
-    
+
     # Load model weights
     if "model_state_dict" in checkpoint_data:
         model.load_state_dict(checkpoint_data["model_state_dict"])
     else:
         model.load_state_dict(checkpoint_data)
-    
+
     model.to(device)
-    
+
     # Create tokenizer
     tokenizer = Tokenizer()
-    
+
     # Create evaluator
     evaluator = Evaluator(
         model=model,
@@ -1077,7 +1077,7 @@ def eval_model(
         device=device,
         use_mixed_precision=mixed_precision,
     )
-    
+
     # Load dataset
     dataloader = DataLoader(
         dataset_name=dataset,
@@ -1087,7 +1087,7 @@ def eval_model(
         max_length=max_length,
         shuffle=False,
     )
-    
+
     # Convert dataloader to evaluation format
     eval_data = []
     for batch in dataloader:
@@ -1102,14 +1102,14 @@ def eval_model(
             for i in range(batch.size(0)):
                 input_text = tokenizer.decode(batch[i].tolist())
                 eval_data.append({"input": input_text, "target": input_text})
-    
+
     # Evaluate
     logger.info(f"Evaluating on {len(eval_data)} samples...")
     results = evaluator.evaluate_dataset(eval_data)
-    
+
     # Save results
     evaluator.save_results(results, output)
-    
+
     # Display results
     click.echo("\n📊 Evaluation Results")
     click.echo("=" * 40)
@@ -1201,7 +1201,7 @@ def fine_tune_model(
     # Load model and tokenizer
     device = get_device()
     checkpoint_data = torch.load(checkpoint, map_location=device)
-    
+
     # Create model
     model = TransformerDecoder(
         vocab_size=checkpoint_data.get("vocab_size", 10000),
@@ -1212,18 +1212,18 @@ def fine_tune_model(
         max_length=checkpoint_data.get("max_length", 512),
         dropout=checkpoint_data.get("dropout", 0.1),
     )
-    
+
     # Load model weights
     if "model_state_dict" in checkpoint_data:
         model.load_state_dict(checkpoint_data["model_state_dict"])
     else:
         model.load_state_dict(checkpoint_data)
-    
+
     model.to(device)
-    
+
     # Create tokenizer
     tokenizer = Tokenizer()
-    
+
     # Create fine-tuner
     fine_tuner = FineTuner(
         model=model,
@@ -1235,13 +1235,13 @@ def fine_tune_model(
         early_stopping_patience=early_stopping_patience,
         use_mixed_precision=mixed_precision,
     )
-    
+
     # Load chatbot dataset
     data_loader = ChatbotDataLoader(
         tokenizer=tokenizer,
         max_length=max_length,
     )
-    
+
     try:
         # Load dataset
         chatbot_dataset = data_loader.load_dataset(
@@ -1249,7 +1249,7 @@ def fine_tune_model(
             split="train",
             num_samples=100,  # Limit for demo
         )
-        
+
         # Split dataset
         train_dataset, val_dataset, test_dataset = data_loader.split_dataset(
             chatbot_dataset,
@@ -1257,7 +1257,7 @@ def fine_tune_model(
             val_ratio=0.1,
             test_ratio=0.1,
         )
-        
+
         # Create data loaders
         train_loader = data_loader.create_dataloader(
             train_dataset,
@@ -1269,7 +1269,7 @@ def fine_tune_model(
             batch_size=batch_size,
             shuffle=False,
         )
-        
+
         # Fine-tune
         logger.info("Starting fine-tuning...")
         results = fine_tuner.fine_tune(
@@ -1278,7 +1278,7 @@ def fine_tune_model(
             output_dir=output_dir,
             save_best_only=True,
         )
-        
+
         # Display results
         click.echo("\n🎯 Fine-tuning Results")
         click.echo("=" * 40)
@@ -1292,7 +1292,7 @@ def fine_tune_model(
         click.echo(f"Best validation loss: {results['best_val_loss']:.4f}")
         click.echo(f"Output directory: {output_dir}")
         click.echo("=" * 40)
-        
+
     except Exception as e:
         logger.error(f"Fine-tuning failed: {e}")
         click.echo(f"❌ Fine-tuning failed: {e}")

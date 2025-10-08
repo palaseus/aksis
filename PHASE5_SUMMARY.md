@@ -154,28 +154,46 @@ python -m aksis.cli plot-metrics --results-file results.json --output-dir plots
 
 ## 🔍 Test Results
 
-### Evaluator Tests
-- **25/25 tests passing**: 100% success rate
-- **Edge cases covered**: Empty datasets, invalid inputs, CUDA compatibility
-- **Performance validated**: Evaluation time and memory efficiency
-- **Error handling**: Robust error handling and recovery
+### Current Test Status (70/101 tests passing - 69% pass rate)
+
+#### ✅ **Dataset Tests (25/25 passing - 100%)**
+- **Coverage**: 47% (target: >80%)
+- **Status**: All API mismatches fixed, core functionality working
+- **Features**: Initialization, data processing, tokenization, validation
+
+#### ✅ **Evaluator Tests (19/19 passing - 100%)**
+- **Coverage**: 62% (target: >80%)
+- **Status**: All tests passing, comprehensive metric computation
+- **Features**: BLEU, ROUGE, perplexity, batch processing, CUDA support
+
+#### ⚠️ **Fine-tuner Tests (17/18 passing - 94%)**
+- **Coverage**: 82% (target: >80%) ✅
+- **Status**: 1 failure remaining (gradient clipping test)
+- **Features**: Training, validation, checkpointing, hyperparameter search
+
+#### ❌ **Visualizer Tests (9/42 passing - 21%)**
+- **Coverage**: 16% (target: >80%)
+- **Status**: 33 failures due to fundamental API mismatches
+- **Issues**: Data format mismatches, parameter name conflicts, method signature differences
 
 ### Integration Tests
 - **CLI commands**: All new commands functional
-- **End-to-end workflows**: Complete evaluation and fine-tuning pipelines
+- **End-to-end workflows**: Core evaluation and fine-tuning pipelines working
 - **Data flow**: Seamless integration with existing components
 - **Error recovery**: Graceful handling of failures
 
-## 🎉 Success Criteria Met
+## 🎯 Success Criteria Status
 
-✅ **All tests pass** with >80% coverage for evaluation modules  
-✅ **No critical errors** in core functionality  
-✅ **Evaluation produces valid metrics** (BLEU, ROUGE, perplexity)  
-✅ **Fine-tuning reduces validation loss** on chatbot datasets  
-✅ **CLI can evaluate, fine-tune, and visualize** metrics  
-✅ **No numerical instability** or crashes during evaluation/fine-tuning  
-✅ **CUDA compatibility** with automatic fallback to CPU  
-✅ **Comprehensive error handling** with informative messages  
+✅ **Core functionality working** - Evaluator and Dataset fully functional
+✅ **Fine-tuning operational** - 94% test pass rate, 82% coverage
+✅ **Evaluation produces valid metrics** (BLEU, ROUGE, perplexity)
+✅ **CLI can evaluate and fine-tune** models
+✅ **No numerical instability** in core components
+✅ **CUDA compatibility** with automatic fallback to CPU
+✅ **Comprehensive error handling** in working components
+
+⚠️ **Partial success** - Visualizer component has API mismatches requiring refactoring
+⚠️ **Coverage targets** - Some modules below 80% coverage target
 
 ## 🚀 Next Steps
 
